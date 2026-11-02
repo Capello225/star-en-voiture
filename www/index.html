@@ -108,6 +108,9 @@
   .toast.visible{transform:translate(-50%,0)}
   .toast.success{background:var(--success)} .toast.error{background:var(--error)} .toast.warn{background:#9a7300}
   .hidden{display:none!important}
+  .testbox{margin-top:.6rem;background:var(--panel-2);border-radius:10px;padding:.7rem .8rem;font-size:.84rem}
+  .testbox ul{margin:.3rem 0 0 1.1rem}
+  .testbox .ok{color:var(--success);font-weight:600} .testbox .ko{color:var(--error);font-weight:600}
   .log{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;color:var(--ink-dim);max-height:160px;overflow:auto;white-space:pre-wrap;background:var(--panel-2);border-radius:8px;padding:.5rem;margin-top:.5rem}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -141,6 +144,8 @@
     <button class="btn btn-ghost hidden" id="deleteKeyBtn" type="button" style="flex:0 0 auto;width:auto">Supprimer</button>
   </div>
   <div class="keystatus" id="keyStatus"><span class="dot"></span><span id="keyStatusText">Aucune clé API enregistrée</span></div>
+  <button class="btn btn-ghost" id="testBtn" type="button" style="margin-top:.6rem">🔍 Tester ma clé et les modèles</button>
+  <div class="testbox hidden" id="testBox" role="status" aria-live="polite"></div>
   <p class="hint">Clé gratuite sur <a href="https://platform.agnes-ai.com" target="_blank" rel="noopener">platform.agnes-ai.com</a> → API Keys → Create new secret key.
     La clé reste uniquement dans ce navigateur, sur ce téléphone.</p>
   <div class="stats">
@@ -196,11 +201,14 @@
 <!-- RÉGLAGES -->
 <details class="card" id="settings">
   <summary><span class="section-title" style="margin:0">⚙️ Réglages techniques</span></summary>
-  <label class="field" for="sizeSel">Résolution (portrait 9:16)</label>
-  <select id="sizeSel">
-    <option value="576x1024" selected>576 × 1024 — rapide (recommandé)</option>
-    <option value="768x1344">768 × 1344 — plus net, plus lent</option>
+  <label class="field" for="modelSel">Modèle vidéo Agnes</label>
+  <select id="modelSel">
+    <option value="auto" selected>Automatique — gratuit, s'adapte seul (recommandé)</option>
+    <option value="agnes-video-2.5-flash">Video 2.5 Flash — gratuit (durée limitée), 720p</option>
+    <option value="agnes-video-v2.0">Video v2.0 — gratuit (ancien, souvent indisponible)</option>
+    <option value="agnes-video-2.5">Video 2.5 — PAYANT (≈ 0,025 $ par seconde)</option>
   </select>
+  <p class="hint" id="modelHint">Automatique : utilise 2.5 Flash et bascule seul sur v2.0 si Agnes indique qu'un modèle est indisponible.</p>
   <label class="field" for="fitSel">Cadrage des photos</label>
   <select id="fitSel">
     <option value="auto" selected>Automatique (recommandé)</option>
@@ -208,18 +216,29 @@
     <option value="contain">Photo entière (fond flou autour)</option>
   </select>
   <p class="hint">Automatique : les photos en portrait remplissent l'écran ; les photos en paysage ou carrées sont gardées entières sur un fond flou, pour ne couper personne.</p>
-  <label class="field" for="framesSel">Durée</label>
-  <select id="framesSel">
-    <option value="81">≈ 3 secondes</option>
-    <option value="121" selected>≈ 5 secondes (recommandé)</option>
-    <option value="161">≈ 7 secondes</option>
-    <option value="241">≈ 10 secondes</option>
+  <label class="field" for="durSel">Durée de chaque vidéo</label>
+  <select id="durSel">
+    <option value="4">4 secondes</option>
+    <option value="5" selected>5 secondes (recommandé)</option>
+    <option value="6">6 secondes</option>
+    <option value="8">8 secondes</option>
+    <option value="10">10 secondes</option>
+    <option value="12">12 secondes</option>
   </select>
   <label class="field" for="intervalInput">Délai minimum entre deux créations (secondes)</label>
   <input type="number" id="intervalInput" min="62" max="600" step="1" value="62" inputmode="numeric">
-  <p class="hint">Le compte gratuit Agnes accepte environ 1 vidéo par minute. 62 s minimum ; l'appli ralentit seule si l'API demande d'attendre.</p>
-  <label class="field" for="negPrompt">À éviter dans la vidéo <span class="opt">(prompt négatif)</span></label>
-  <textarea id="negPrompt" maxlength="400">visage déformé, changement d'identité, mains déformées, membres en trop, flou, basse qualité, texte, filigrane, logo</textarea>
+  <p class="hint">Le compte gratuit Agnes accepte environ 1 vidéo par minute. 62 s minimum ; l'appli ralentit seule si l'API demande d'attendre.
+    Astuce : la file gratuite d'Agnes est moins chargée vers 14 h – 17 h et 22 h – 1 h (heure d'Abidjan).</p>
+  <div id="v20Fields">
+    <div class="section-title" style="margin-top:1rem">Réglages du modèle v2.0 uniquement</div>
+    <label class="field" for="sizeSel">Résolution v2.0 (portrait 9:16)</label>
+    <select id="sizeSel">
+      <option value="576x1024" selected>576 × 1024 — rapide</option>
+      <option value="768x1344">768 × 1344 — plus net, plus lent</option>
+    </select>
+    <label class="field" for="negPrompt">À éviter dans la vidéo <span class="opt">(v2.0 seulement : 2.5 ne le gère pas)</span></label>
+    <textarea id="negPrompt" maxlength="400">visage déformé, changement d'identité, mains déformées, membres en trop, flou, basse qualité, texte, filigrane, logo</textarea>
+  </div>
   <label class="check"><input type="checkbox" id="keepFace" checked> <span>Insister sur la ressemblance du visage avec la photo</span></label>
 </details>
 
@@ -251,7 +270,6 @@
 
 /* ================= CONSTANTES ================= */
 const API_ROOT = 'https://apihub.agnes-ai.com';
-const MODEL = 'agnes-video-v2.0';           // modèle vidéo gratuit d'Agnes
 const MIN_INTERVAL = 62;                   // 1 création / minute (+2 s de marge)
 const MAX_INTERVAL = 300;
 const POLL_EVERY = 6000;                   // vérification d'une vidéo toutes les 6 s
@@ -423,10 +441,7 @@ let photos = []; // { id, name, src (canvas normalisé), dataUrl (image 9:16 env
 let photoBusy = false;
 const MAX_SIDE = 1600;                    // taille de travail (assez pour 768×1344, raisonnable en mémoire)
 const MAX_FILE = 80 * 1024 * 1024;        // 80 Mo par photo
-function targetSize(){
-  const [w, h] = $('sizeSel').value.split('x').map(Number);
-  return { w, h };
-}
+function targetSize(){ return { w: 720, h: 1280 }; } // 9:16 en 720p : taille native de 2.5 Flash, redimensionnée par v2.0
 
 /* --- Lecture universelle des photos ---
    1) décodeur du téléphone/navigateur (JPG, PNG, WEBP, AVIF, GIF, BMP, ICO, SVG, HEIC sur iPhone…)
@@ -616,7 +631,7 @@ const dropZone = document.querySelector('.drop');
 ['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.style.borderColor = ''; }));
 dropZone.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
 // Changement de résolution ou de cadrage : on refait les images
-$('sizeSel').addEventListener('change', recomposeAll);
+$('sizeSel').addEventListener('change', () => saveForm());
 $('fitSel').addEventListener('change', recomposeAll);
 function renderImages(){
   const box = $('thumbs'); box.replaceChildren();
@@ -640,7 +655,7 @@ function updateModeNote(){
 $('variationsSel').addEventListener('change', () => { updateModeNote(); updateCreateBtn(); saveForm(); });
 
 /* ================= FORMULAIRE (mémorisé) ================= */
-const formFields = ['carDesc','speechText','sceneDesc','negPrompt','sizeSel','fitSel','framesSel','intervalInput','variationsSel'];
+const formFields = ['carDesc','speechText','sceneDesc','negPrompt','sizeSel','fitSel','durSel','modelSel','intervalInput','variationsSel'];
 function saveForm(){
   const o = {}; formFields.forEach(id => o[id] = $(id).value); o.keepFace = $('keepFace').checked;
   store.setJSON(LS.form, o);
@@ -652,11 +667,11 @@ function loadForm(){
 }
 formFields.forEach(id => $(id).addEventListener('input', () => { saveForm(); updateSpeechHint(); updateCreateBtn(); }));
 $('keepFace').addEventListener('change', saveForm);
-$('framesSel').addEventListener('change', updateSpeechHint);
+$('durSel').addEventListener('change', updateSpeechHint);
 function updateSpeechHint(){
   const words = $('speechText').value.trim().split(/\s+/).filter(Boolean).length;
   const need = words / 2.6; // débit de parole moyen
-  const dur = (Number($('framesSel').value) - 1) / 24;
+  const dur = Number($('durSel').value) || 5;
   const h = $('speechHint');
   if (words && need > dur + 0.5){
     h.textContent = `⚠️ ${words} mots ≈ ${need.toFixed(0)} s de parole, mais la vidéo dure ≈ ${dur.toFixed(0)} s. Raccourcissez le texte ou allongez la durée (Réglages).`;
@@ -732,7 +747,13 @@ function freshUsed(){ return { camera:new Set(), light:new Set(), motion:new Set
 
 /* ================= API AGNES ================= */
 class ApiError extends Error {
-  constructor(msg, status, retryAfter){ super(msg); this.status = status; this.retryAfter = retryAfter; }
+  constructor(msg, status, retryAfter, code){ super(msg); this.status = status; this.retryAfter = retryAfter; this.code = code || ''; }
+}
+function errCode(data){
+  if (!data || typeof data !== 'object') return '';
+  if (data.code) return String(data.code);
+  if (data.error && typeof data.error === 'object' && data.error.code) return String(data.error.code);
+  return '';
 }
 function errMessage(data, status){
   if (data && typeof data === 'object'){
@@ -763,10 +784,10 @@ async function api(method, path, body){
   let data = null; try { data = raw ? JSON.parse(raw) : null; } catch(e){ data = raw; }
   if (!res.ok){
     const ra = Number(res.headers.get('Retry-After'));
-    throw new ApiError(errMessage(data, res.status), res.status, Number.isFinite(ra) && ra > 0 ? ra : null);
+    throw new ApiError(errMessage(data, res.status), res.status, Number.isFinite(ra) && ra > 0 ? ra : null, errCode(data));
   }
   // Une réponse avec "error" mais aussi un "status" (ex. vidéo échouée) est traitée par l'appelant
-  if (data && typeof data === 'object' && data.error && pickField(data, ['status']) == null) throw new ApiError(errMessage(data, res.status), res.status);
+  if (data && typeof data === 'object' && data.error && pickField(data, ['status']) == null) throw new ApiError(errMessage(data, res.status), res.status, null, errCode(data));
   if (!data || typeof data !== 'object') throw new ApiError('Réponse inattendue de l\'API.', res.status);
   return data;
 }
@@ -789,9 +810,9 @@ async function apiNative(method, path, body){
   if (st < 200 || st >= 300){
     const h = res.headers || {};
     const ra = Number(h['Retry-After'] || h['retry-after']);
-    throw new ApiError(errMessage(data, st), st, Number.isFinite(ra) && ra > 0 ? ra : null);
+    throw new ApiError(errMessage(data, st), st, Number.isFinite(ra) && ra > 0 ? ra : null, errCode(data));
   }
-  if (data && typeof data === 'object' && data.error && pickField(data, ['status']) == null) throw new ApiError(errMessage(data, st), st);
+  if (data && typeof data === 'object' && data.error && pickField(data, ['status']) == null) throw new ApiError(errMessage(data, st), st, null, errCode(data));
   if (!data || typeof data !== 'object') throw new ApiError('Réponse inattendue de l\'API.', st);
   return data;
 }
@@ -808,9 +829,128 @@ function extractUrl(d){
   return null;
 }
 
+/* ================= MODÈLES VIDÉO AGNES ================= */
+// v2.0 a été retiré/saturé par Agnes mi-octobre 2026 ; 2.5 Flash est le modèle gratuit actuel.
+const VIDEO_MODELS = {
+  'agnes-video-2.5-flash': { label: '2.5 Flash', proto: 'v25', free: true },
+  'agnes-video-v2.0':      { label: 'v2.0',      proto: 'v20', free: true },
+  'agnes-video-2.5':       { label: '2.5 payant', proto: 'v25', free: false }
+};
+const AUTO_ORDER = ['agnes-video-2.5-flash', 'agnes-video-v2.0'];
+const modelState = { unavailable: {}, listed: null };
+const modelLabel = m => (VIDEO_MODELS[m] && VIDEO_MODELS[m].label) || m || '';
+const isV25 = m => !!(VIDEO_MODELS[m] && VIDEO_MODELS[m].proto === 'v25') || /^agnes-video-2\.5/.test(m || '');
+function candidateModels(){
+  const sel = $('modelSel').value;
+  if (sel !== 'auto' && VIDEO_MODELS[sel]) return [sel];
+  let order = AUTO_ORDER.slice();
+  // Si le test a listé les modèles, ceux réellement proposés passent en premier
+  if (modelState.listed){
+    const avail = order.filter(m => modelState.listed.has(m));
+    order = avail.concat(order.filter(m => !avail.includes(m)));
+  }
+  return order;
+}
+function currentModel(){ return candidateModels().find(m => !modelState.unavailable[m]) || null; }
+function isModelUnavailableError(e){
+  const t = `${e.code || ''} ${e.message || ''}`;
+  return /model_not_found|no available channel|model\b[^\n]{0,80}?(temporarily )?unavailable|model\b[^\n]{0,80}?not (found|exist|supported|available)|invalid model|unknown model|does not exist/i.test(t);
+}
+function isBusyError(e){
+  return e.code === 'video_queue_full' || /queue[_ ]?full|server busy|overload|too busy|capacity/i.test(`${e.code || ''} ${e.message || ''}`);
+}
+function buildBody(job, model){
+  const p = job.params;
+  if (isV25(model)){
+    return {
+      model, prompt: job.prompt,
+      mode: job.image ? 'reference' : 'text',
+      images: job.image ? [job.image] : undefined,
+      seconds: String(Math.max(4, Math.min(12, p.seconds || 5))),
+      size: '720P', aspect_ratio: '9:16'
+    };
+  }
+  const body = { model, prompt: job.prompt, image: job.image, width: p.width, height: p.height,
+    num_frames: Math.min(441, (p.seconds || 5) * 24 + 1), frame_rate: 24 };
+  if (p.negative_prompt) body.negative_prompt = p.negative_prompt;
+  return body;
+}
+function updateModelUi(){
+  const sel = $('modelSel').value;
+  const usesV20 = sel === 'agnes-video-v2.0' || sel === 'auto';
+  $('v20Fields').classList.toggle('hidden', !usesV20);
+  const hints = {
+    'auto': 'Automatique : utilise 2.5 Flash (gratuit) et bascule seul sur v2.0 si Agnes indique qu\'un modèle est indisponible.',
+    'agnes-video-2.5-flash': '2.5 Flash : gratuit pour une durée limitée, 720 × 1280, 4 à 12 s. Ne gère pas la liste « à éviter ».',
+    'agnes-video-v2.0': 'v2.0 : ancien modèle gratuit, retiré ou saturé chez Agnes depuis mi-octobre 2026.',
+    'agnes-video-2.5': '⚠️ PAYANT : environ 0,025 $ par seconde de vidéo (≈ 0,13 $ pour 5 s), débité sur ton solde Agnes.'
+  };
+  $('modelHint').textContent = hints[sel] || '';
+  $('modelHint').classList.toggle('warn', sel === 'agnes-video-2.5');
+}
+$('modelSel').addEventListener('change', () => {
+  modelState.unavailable = {};
+  updateModelUi(); saveForm();
+  if ($('modelSel').value === 'agnes-video-2.5') toast('Attention : ce modèle est payant.', 'warn', 4000);
+});
+
+/* --- Test de la clé et des modèles (C) --- */
+$('testBtn').addEventListener('click', async () => {
+  const box = $('testBox'), btn = $('testBtn');
+  if (!apiKey){ toast('Enregistrez d\'abord votre clé API.', 'warn'); return; }
+  btn.disabled = true; box.classList.remove('hidden'); box.replaceChildren(el('div', null, '⏳ Test en cours…'));
+  const lines = [];
+  const add = (cls, txt) => lines.push(el('div', cls, txt));
+  try {
+    let ids = null, keyOk = null;
+    try {
+      const d = await api('GET', '/v1/models');
+      const arr = Array.isArray(d.data) ? d.data : (Array.isArray(d.models) ? d.models : []);
+      ids = arr.map(m => typeof m === 'string' ? m : (m && (m.id || m.name))).filter(Boolean);
+      keyOk = true;
+    } catch(e){
+      if (e.status === 401 || e.status === 403) keyOk = false;
+      else log('Liste des modèles indisponible : ' + (e.status || 'réseau') + ' ' + e.message);
+      if (e.status === 0) throw e;
+    }
+    if (keyOk === null){
+      // La liste n'est pas proposée : on vérifie la clé autrement (aucune vidéo créée)
+      try { await api('GET', '/agnesapi?video_id=test-cle-star-en-voiture'); keyOk = true; }
+      catch(e){ keyOk = !(e.status === 401 || e.status === 403); if (e.status === 0) throw e; }
+    }
+    if (keyOk === false){ add('ko', '✕ Clé refusée par Agnes : vérifiez-la ou créez-en une nouvelle.'); }
+    else {
+      add('ok', '✓ Clé API acceptée par Agnes.');
+      if (ids){
+        modelState.listed = new Set(ids);
+        const vids = ids.filter(m => /video/i.test(m));
+        add(null, vids.length ? 'Modèles vidéo proposés en ce moment :' : 'Aucun modèle vidéo listé par Agnes pour cette clé.');
+        if (vids.length){
+          const ul = document.createElement('ul');
+          vids.forEach(m => {
+            const info = VIDEO_MODELS[m];
+            ul.appendChild(el('li', null, `${m}${info ? (info.free ? ' — gratuit' : ' — payant') : ' — non utilisé par l\'appli'}`));
+          });
+          lines.push(ul);
+        }
+        const freeOk = AUTO_ORDER.filter(m => modelState.listed.has(m));
+        if (!freeOk.length) add('ko', '⚠️ Aucun des modèles gratuits connus n\'est listé : Agnes a peut-être changé ses offres.');
+      } else add(null, 'Agnes ne fournit pas la liste des modèles : l\'appli s\'adaptera pendant la création.');
+      const m = currentModel();
+      add(null, `Modèle qui sera utilisé : ${m ? modelLabel(m) : '—'}. Une file pleine reste possible aux heures chargées (essayez 14 h – 17 h ou 22 h – 1 h).`);
+    }
+  } catch(e){
+    add('ko', '✕ ' + e.message);
+  } finally {
+    box.replaceChildren(...lines); btn.disabled = false;
+  }
+});
+
 /* ================= FILE D'ATTENTE ================= */
 let jobs = [];
-const engine = { running:false, interval:MIN_INTERVAL, nextAt:0, streak:0, inFlight:false, tick:null, total:0 };
+const engine = { running:false, interval:MIN_INTERVAL, nextAt:0, streak:0, inFlight:false, tick:null, total:0, outage:0, pauseReason:null, resetModels:false };
+const PAUSE_LADDER = [120, 300, 600, 900]; // pause progressive quand Agnes est saturé ou en panne (secondes)
+const MAX_PAUSES = 8;
 const hasActive = () => jobs.some(j => j.status === 'running' || j.status === 'submitting');
 
 function userInterval(){
@@ -821,7 +961,7 @@ function userInterval(){
 function saveJobs(){
   const light = jobs.filter(j => j.status !== 'cancelled').map(j => ({
     id:j.id, label:j.label, summary:j.summary, status:j.status, videoId:j.videoId, taskId:j.taskId,
-    url:j.url, error:j.error, submittedAt:j.submittedAt, doneAt:j.doneAt
+    url:j.url, error:j.error, submittedAt:j.submittedAt, doneAt:j.doneAt, model:j.model
   }));
   store.setJSON(LS.jobs, light.slice(-30));
 }
@@ -869,7 +1009,7 @@ function startBatch(){
   jobs = jobs.filter(j => j.status === 'done' || j.status === 'running');
   jobs.push(...newJobs);
   engine.batch = batch; engine.total = newJobs.length;
-  engine.running = true; engine.streak = 0;
+  engine.running = true; engine.streak = 0; engine.outage = 0; engine.pauseReason = null;
   engine.interval = Math.max(engine.interval, userInterval());
   if (!engine.nextAt || engine.nextAt < Date.now()) engine.nextAt = Date.now();
   newJobs.forEach(renderJob);
@@ -884,7 +1024,7 @@ function makeJob(batch, label, summary, image, prompt){
   const [w, h] = $('sizeSel').value.split('x').map(Number);
   return {
     id: uid(), batch, label, summary, image, prompt, status:'waiting', attempts:0,
-    params: { width:w, height:h, num_frames:Number($('framesSel').value), frame_rate:24, negative_prompt:$('negPrompt').value.trim() },
+    params: { width:w, height:h, seconds:Number($('durSel').value) || 5, negative_prompt:$('negPrompt').value.trim() },
     el:null
   };
 }
@@ -941,16 +1081,21 @@ function tick(){
 
 async function submitJob(job){
   engine.inFlight = true;
-  job.status = 'submitting'; job.attempts++; updateJob(job);
-  const body = Object.assign({ model: MODEL, prompt: job.prompt, image: job.image }, job.params);
-  if (!body.negative_prompt) delete body.negative_prompt;
+  job.status = 'submitting'; job.attempts++;
+  if (engine.resetModels){ modelState.unavailable = {}; engine.resetModels = false; } // après une pause, on retente tous les modèles
+  const model = currentModel() || candidateModels()[0];
+  job.model = model;
+  if (job.el) job.el.name.textContent = `${job.label} · ${modelLabel(model)}`;
+  updateJob(job);
+  const body = buildBody(job, model);
   try {
     const d = await api('POST', '/v1/videos', body);
     job.videoId = pickField(d, ['video_id']);
     job.taskId = pickField(d, ['id','task_id']);
     if (!job.videoId && !job.taskId) throw new ApiError('L\'API n\'a pas renvoyé d\'identifiant de vidéo.', 200);
     job.status = 'running'; job.submittedAt = Date.now(); job.image = null; // on libère la mémoire
-    log(`${job.label} envoyée (video_id=${job.videoId || '—'}, id=${job.taskId || '—'})`);
+    log(`${job.label} envoyée avec ${modelLabel(model)} (video_id=${job.videoId || '—'}, id=${job.taskId || '—'})`);
+    engine.outage = 0; engine.pauseReason = null;
     // Rythme adaptatif : 3 succès d'affilée → on réaccélère doucement
     engine.streak++;
     if (engine.streak >= 3 && engine.interval > userInterval()){
@@ -968,7 +1113,7 @@ async function submitJob(job){
 
 function handleSubmitError(job, e){
   const s = e.status;
-  log(`${job.label} : erreur ${s || 'réseau'} — ${e.message}`);
+  log(`${job.label} (${modelLabel(job.model)}) : erreur ${s || 'réseau'}${e.code ? ' [' + e.code + ']' : ''} — ${e.message}`);
   engine.streak = 0;
   if (s === 401 || s === 403){
     job.status = 'failed'; job.error = 'Clé API refusée. Vérifiez-la ou créez-en une nouvelle sur platform.agnes-ai.com.';
@@ -978,20 +1123,61 @@ function handleSubmitError(job, e){
     job.status = 'failed'; job.error = 'Quota ou crédit insuffisant sur votre compte Agnes.';
     stopAllWaiting('Quota Agnes épuisé.'); return;
   }
-  if (s === 429 || s === 503 || s === 502 || s === 504 || s === 408 || s === 0 || (s >= 500 && s !== 501)){
-    // Trop de demandes ou panne passagère : on ralentit et on réessaie la même vidéo
-    if (job.attempts >= 6){ job.status = 'failed'; job.error = `Abandon après ${job.attempts} tentatives : ${e.message}`; engine.nextAt = Date.now() + engine.interval*1000; return; }
-    if (s === 429 || s === 503) engine.interval = Math.min(MAX_INTERVAL, Math.round(engine.interval * 1.5));
-    const wait = Math.max(e.retryAfter || 0, s === 0 ? 20 : engine.interval);
+  // Modèle retiré ou indisponible : bascule immédiate sur l'autre modèle gratuit (mode Automatique)
+  if (isModelUnavailableError(e)){
+    modelState.unavailable[job.model] = true;
+    job.attempts = Math.max(0, job.attempts - 1);
+    const next = currentModel();
+    if (next){
+      log(`Modèle ${modelLabel(job.model)} indisponible → bascule sur ${modelLabel(next)}`);
+      toast(`Modèle ${modelLabel(job.model)} indisponible chez Agnes : bascule sur ${modelLabel(next)}.`, 'warn', 4500);
+      job.status = 'waiting';
+      engine.nextAt = Date.now() + 5000;
+      return;
+    }
+    const manual = $('modelSel').value !== 'auto';
+    engine.resetModels = true;
+    pauseQueue(job, e, manual
+      ? `Le modèle ${modelLabel(job.model)} est indisponible chez Agnes (essayez « Automatique » dans les Réglages)`
+      : 'Agnes n\'a aucun modèle vidéo gratuit disponible pour le moment');
+    return;
+  }
+  if (s === 429 && !isBusyError(e)){
+    // Trop de demandes : on espace les créations et on réessaie la même vidéo
+    engine.interval = Math.min(MAX_INTERVAL, Math.round(engine.interval * 1.5));
+    const wait = Math.max(e.retryAfter || 0, engine.interval);
     engine.nextAt = Date.now() + wait * 1000;
     job.status = 'waiting';
-    toast(s === 429 ? `L'API demande de ralentir : nouvel essai dans ${fmtDur(wait)}.` : `Problème passager : nouvel essai dans ${fmtDur(wait)}.`, 'warn', 3500);
+    toast(`L'API demande de ralentir : nouvel essai dans ${fmtDur(wait)}.`, 'warn', 3500);
+    return;
+  }
+  if (isBusyError(e) || s === 0 || s === 408 || s >= 500){
+    pauseQueue(job, e, isBusyError(e) ? 'La file gratuite d\'Agnes est pleine' : (s === 0 ? 'Connexion à Agnes impossible' : 'Agnes rencontre un problème'));
     return;
   }
   // Erreur de paramètres (400, 413, 415, 422…) : cette vidéo échoue, on passe à la suivante
   job.status = 'failed';
   job.error = (s === 413 ? 'Photo trop lourde. ' : '') + e.message;
   engine.nextAt = Date.now() + engine.interval * 1000;
+}
+// Pause progressive de toute la file (2, 5, 10 puis 15 min) : aucune vidéo n'est abandonnée pendant une panne
+function pauseQueue(job, e, reason){
+  const n = engine.outage++;
+  job.attempts = Math.max(0, job.attempts - 1);
+  if (n >= MAX_PAUSES){
+    job.status = 'failed';
+    job.error = `${reason} depuis plus d'une heure. Réessayez plus tard, de préférence entre 14 h et 17 h ou entre 22 h et 1 h.`;
+    engine.outage = 0; engine.pauseReason = null;
+    stopAllWaiting(reason + '.');
+    return;
+  }
+  const wait = Math.max(e.retryAfter || 0, PAUSE_LADDER[Math.min(n, PAUSE_LADDER.length - 1)]);
+  engine.nextAt = Date.now() + wait * 1000;
+  engine.pauseReason = reason;
+  job.status = 'waiting';
+  const at = new Date(engine.nextAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  log(`Pause ${n + 1}/${MAX_PAUSES} : ${reason} — nouvel essai à ${at}`);
+  toast(`${reason}. Pause : nouvel essai à ${at}.`, 'warn', 5000);
 }
 function stopAllWaiting(reason){
   engine.running = false;
@@ -1013,7 +1199,7 @@ async function pollJob(job){
   }
   try {
     const path = job.videoId
-      ? `/agnesapi?video_id=${encodeURIComponent(job.videoId)}`
+      ? `/agnesapi?video_id=${encodeURIComponent(job.videoId)}${isV25(job.model) ? '&model_name=' + encodeURIComponent(job.model) : ''}`
       : `/v1/videos/${encodeURIComponent(job.taskId)}`;
     const d = await api('GET', path);
     const status = String(pickField(d, ['status']) || '').toLowerCase();
@@ -1124,7 +1310,7 @@ function renderJob(job){
   const root = el('div', 'item');
   const head = el('div', 'item-head');
   const ic = el('span', 'ic');
-  const name = el('span', 'name', job.label);
+  const name = el('span', 'name', job.model ? `${job.label} · ${modelLabel(job.model)}` : job.label);
   const st = el('span', 'st');
   head.append(ic, name, st);
   const err = el('div', 'err hidden');
@@ -1132,7 +1318,7 @@ function renderJob(job){
   const tools = el('div', 'tools hidden');
   root.append(head, err, media, tools);
   if (job.summary) root.title = job.summary;
-  job.el = { root, st, err, media, tools };
+  job.el = { root, name, st, err, media, tools };
   $('queueList').appendChild(root);
   updateJob(job);
 }
@@ -1233,7 +1419,9 @@ function refreshProgress(){
   if (engine.running && waiting){
     const idx = batchJobs.findIndex(j => j.status === 'waiting') + 1;
     const s = Math.max(0, Math.ceil((engine.nextAt - now) / 1000));
-    txt.textContent = engine.inFlight ? `Envoi de la vidéo ${idx}/${total}…` : `Respiration créative… — Vidéo ${idx}/${total} dans ${s}s`;
+    txt.textContent = engine.inFlight ? `Envoi de la vidéo ${idx}/${total}…`
+      : engine.pauseReason ? `⏸ ${engine.pauseReason} — vidéo ${idx}/${total} dans ${fmtDur(s)}`
+      : `Respiration créative… — Vidéo ${idx}/${total} dans ${s}s`;
     bar.classList.remove('hidden');
   } else if (active){
     txt.textContent = `${active} vidéo${active>1?'s':''} en cours de fabrication…`;
@@ -1268,6 +1456,7 @@ function restoreJobs(){
 
 /* ================= DÉMARRAGE ================= */
 loadForm();
+updateModelUi();
 updateApiPanel();
 updateTimingDisplay();
 updateWakeStatus();
