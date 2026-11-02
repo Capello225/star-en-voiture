@@ -1,6 +1,6 @@
 // Service worker : garde l'interface disponible et permet l'installation (iPhone / Android).
 // Les appels à l'API Agnes et les vidéos ne sont JAMAIS mis en cache.
-const CACHE = 'star-en-voiture-v1';
+const CACHE = 'star-en-voiture-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

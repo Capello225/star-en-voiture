@@ -160,8 +160,10 @@
     <div class="plus">+</div>
     <div class="t">Ajoutez vos photos</div>
     <div class="hint">1 photo = plusieurs vidéos · Plusieurs photos = 1 vidéo par photo (10 max)</div>
+    <div class="hint">Tous formats : JPG, PNG, HEIC/HEIF (iPhone), WEBP, AVIF, GIF, BMP, TIFF, RAW (DNG…) · portrait, paysage ou carré</div>
   </label>
   <input type="file" id="fileInput" accept="image/*" multiple class="hidden">
+  <p class="hint hidden" id="photoBusy" role="status" style="text-align:center;margin-top:.6rem">⏳ Lecture des photos…</p>
   <div class="thumbs" id="thumbs"></div>
 </div>
 
@@ -199,6 +201,13 @@
     <option value="576x1024" selected>576 × 1024 — rapide (recommandé)</option>
     <option value="768x1344">768 × 1344 — plus net, plus lent</option>
   </select>
+  <label class="field" for="fitSel">Cadrage des photos</label>
+  <select id="fitSel">
+    <option value="auto" selected>Automatique (recommandé)</option>
+    <option value="cover">Remplir l'écran (recadre les bords)</option>
+    <option value="contain">Photo entière (fond flou autour)</option>
+  </select>
+  <p class="hint">Automatique : les photos en portrait remplissent l'écran ; les photos en paysage ou carrées sont gardées entières sur un fond flou, pour ne couper personne.</p>
   <label class="field" for="framesSel">Durée</label>
   <select id="framesSel">
     <option value="81">≈ 3 secondes</option>
@@ -410,65 +419,212 @@ document.addEventListener('visibilitychange', async () => {
 });
 
 /* ================= PHOTOS ================= */
-let photos = []; // { id, name, dataUrl, thumbUrl }
+let photos = []; // { id, name, src (canvas normalisé), dataUrl (image 9:16 envoyée à l'IA) }
+let photoBusy = false;
+const MAX_SIDE = 1600;                    // taille de travail (assez pour 768×1344, raisonnable en mémoire)
+const MAX_FILE = 80 * 1024 * 1024;        // 80 Mo par photo
 function targetSize(){
   const [w, h] = $('sizeSel').value.split('x').map(Number);
   return { w, h };
 }
-function loadImage(file){
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => resolve({ img, url });
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image illisible')); };
-    img.src = url;
-  });
+
+/* --- Lecture universelle des photos ---
+   1) décodeur du téléphone/navigateur (JPG, PNG, WEBP, AVIF, GIF, BMP, ICO, SVG, HEIC sur iPhone…)
+   2) HEIC/HEIF (photos iPhone) sur Android/Chrome : décodeur intégré heic-to
+   3) TIFF : décodeur intégré UTIF
+   4) RAW d'appareil photo (DNG, CR2, NEF, ARW…) et autres : aperçu JPEG contenu dans le fichier */
+const loadedScripts = {};
+function loadScript(src, globalName){
+  if (window[globalName]) return Promise.resolve(window[globalName]);
+  if (!loadedScripts[src]){
+    loadedScripts[src] = new Promise((resolve, reject) => {
+      const s = document.createElement('script'); s.src = src; s.async = true;
+      s.onload = () => window[globalName] ? resolve(window[globalName]) : reject(new Error('module ' + globalName + ' absent'));
+      s.onerror = () => { delete loadedScripts[src]; reject(new Error('chargement de ' + src + ' impossible')); };
+      document.head.appendChild(s);
+    });
+  }
+  return loadedScripts[src];
 }
-// Recadre la photo en 9:16 centré, à la taille de la vidéo, compressée en JPEG.
-function photoToDataUrl(img, w, h){
+async function sniff(file){
+  const b = new Uint8Array(await file.slice(0, 64).arrayBuffer());
+  const ascii = (i, n) => String.fromCharCode(...b.slice(i, i + n));
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (ascii(4, 4) === 'ftyp'){
+    const brand = ascii(8, 4);
+    if (/^(heic|heix|hevc|hevx|heim|heis|mif1|msf1|heif)$/.test(brand)) return 'heic';
+    if (/^(avif|avis)$/.test(brand)) return 'avif';
+  }
+  if ((b[0] === 0x49 && b[1] === 0x49 && b[2] === 0x2A) || (b[0] === 0x4D && b[1] === 0x4D && b[3] === 0x2A))
+    return /^(dng|cr2|nef|nrw|arw|srw|orf|rw2|pef|raf|3fr|erf|kdc|mos|iiq)$/.test(ext) ? 'raw' : 'tiff';
+  if (/^(heic|heif|hif)$/.test(ext)) return 'heic';
+  if (/^(dng|cr2|cr3|nef|nrw|arw|srw|orf|rw2|pef|raf|3fr|erf|kdc|mos|iiq|x3f)$/.test(ext)) return 'raw';
+  return 'other';
+}
+// Dessine une source dans un canvas réduit à MAX_SIDE (libère la mémoire des très grandes photos)
+function toWorkCanvas(source, sw, sh){
+  if (!sw || !sh) throw new Error('image vide');
+  const r = Math.min(1, MAX_SIDE / Math.max(sw, sh));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(sw * r)); c.height = Math.max(1, Math.round(sh * r));
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(source, 0, 0, c.width, c.height);
+  return c;
+}
+async function decodeNative(blob){
+  // createImageBitmap applique l'orientation EXIF (photo prise de côté)
+  if (window.createImageBitmap){
+    try {
+      let bmp;
+      try { bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' }); }
+      catch(e){ bmp = await createImageBitmap(blob); }
+      try { return toWorkCanvas(bmp, bmp.width, bmp.height); } finally { bmp.close && bmp.close(); }
+    } catch(e){ /* on tente avec <img> */ }
+  }
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = new Image(); img.decoding = 'async'; img.src = url;
+    await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('illisible')); });
+    let w = img.naturalWidth, h = img.naturalHeight;
+    if (!w || !h){ w = 1080; h = 1920; } // SVG sans dimensions
+    return toWorkCanvas(img, w, h);
+  } finally { URL.revokeObjectURL(url); }
+}
+async function decodeHeic(file){
+  const heicTo = await loadScript('vendor/heic-to.js', 'HeicTo');
+  const jpg = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.92 });
+  return decodeNative(jpg);
+}
+async function decodeTiff(file){
+  const UTIF = await loadScript('vendor/UTIF.js', 'UTIF');
+  const buf = await file.arrayBuffer();
+  const ifds = UTIF.decode(buf);
+  // On prend la plus grande image du fichier
+  let best = null;
+  for (const ifd of ifds){
+    try { UTIF.decodeImage(buf, ifd, ifds); } catch(e){ continue; }
+    if (ifd.width && ifd.height && (!best || ifd.width * ifd.height > best.width * best.height)) best = ifd;
+  }
+  if (!best) throw new Error('TIFF illisible');
+  const rgba = UTIF.toRGBA8(best);
+  const c = document.createElement('canvas'); c.width = best.width; c.height = best.height;
+  c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(rgba.buffer, rgba.byteOffset, best.width * best.height * 4), best.width, best.height), 0, 0);
+  return toWorkCanvas(c, c.width, c.height);
+}
+// Cherche la plus grande image JPEG cachée dans le fichier (aperçu des RAW, etc.)
+async function decodeEmbeddedJpeg(file){
+  const u8 = new Uint8Array(await file.arrayBuffer());
+  let best = null;
+  for (let i = 0; i < u8.length - 3; i++){
+    if (u8[i] !== 0xFF || u8[i+1] !== 0xD8 || u8[i+2] !== 0xFF) continue;
+    // Fin de l'image : dernier FFD9 avant le prochain début d'image
+    let end = -1;
+    for (let j = i + 4; j < u8.length - 1; j++){
+      if (u8[j] === 0xFF && u8[j+1] === 0xD9){ end = j + 2; if (j + 4 < u8.length && u8[j+2] === 0xFF && u8[j+3] === 0xD8) break; }
+      else if (u8[j] === 0xFF && u8[j+1] === 0xD8 && u8[j+2] === 0xFF && end > 0) break;
+    }
+    if (end > i && (!best || end - i > best[1] - best[0])) best = [i, end];
+    if (end > i) i = end - 1;
+  }
+  if (!best || best[1] - best[0] < 20000) throw new Error('aucun aperçu exploitable');
+  return decodeNative(new Blob([u8.subarray(best[0], best[1])], { type: 'image/jpeg' }));
+}
+async function decodeAny(file){
+  if (file.size > MAX_FILE) throw new Error('fichier trop lourd (plus de 80 Mo)');
+  const kind = await sniff(file);
+  const tries = [];
+  if (kind === 'raw'){ // l'aperçu JPEG du RAW donne les vraies couleurs
+    tries.push(() => decodeEmbeddedJpeg(file), () => decodeNative(file), () => decodeTiff(file));
+  } else {
+    tries.push(() => decodeNative(file));
+    if (kind === 'heic') tries.push(() => decodeHeic(file));
+    if (kind === 'tiff') tries.push(() => decodeTiff(file));
+    tries.push(() => decodeEmbeddedJpeg(file));
+  }
+  let lastErr;
+  for (const t of tries){
+    try { return await t(); } catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error('format non pris en charge');
+}
+
+/* --- Mise au format 9:16 de la vidéo --- */
+function composeFrame(src, w, h){
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
-  const r = Math.max(w / img.naturalWidth, h / img.naturalHeight);
-  const dw = img.naturalWidth * r, dh = img.naturalHeight * r;
-  // Légèrement décalé vers le haut pour garder le visage
-  const dx = (w - dw) / 2, dy = Math.min(0, Math.max(h - dh, (h - dh) * 0.35));
-  ctx.drawImage(img, dx, dy, dw, dh);
+  ctx.imageSmoothingQuality = 'high';
+  const sw = src.width, sh = src.height, ratio = sw / sh, target = w / h;
+  let mode = $('fitSel').value;
+  if (mode === 'auto') mode = ratio <= target * 1.35 ? 'cover' : 'contain'; // portrait → remplir ; paysage/carré → entier
+  // Remplissage (recadrage), légèrement remonté pour garder le visage
+  const rc = Math.max(w / sw, h / sh), cw = sw * rc, ch = sh * rc;
+  const cx = (w - cw) / 2, cy = Math.min(0, Math.max(h - ch, (h - ch) * 0.35));
+  if (mode === 'cover'){
+    ctx.drawImage(src, cx, cy, cw, ch);
+  } else {
+    // Fond flou : réduction puis agrandissement (fonctionne sur tous les navigateurs, iPhone compris)
+    const t = document.createElement('canvas'); t.width = Math.max(1, Math.round(w / 24)); t.height = Math.max(1, Math.round(h / 24));
+    t.getContext('2d').drawImage(src, (w - cw) / 2 / 24, (h - ch) / 2 / 24, cw / 24, ch / 24);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(t, 0, 0, w, h);
+    ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(0, 0, w, h);
+    const rf = Math.min(w / sw, h / sh), fw = sw * rf, fh = sh * rf;
+    ctx.drawImage(src, (w - fw) / 2, (h - fh) / 2, fw, fh);
+  }
   let q = 0.9, out = c.toDataURL('image/jpeg', q);
   while (out.length > 1_400_000 && q > 0.5){ q -= 0.1; out = c.toDataURL('image/jpeg', q); }
   return out;
 }
+function recomposeAll(){
+  const { w, h } = targetSize();
+  photos.forEach(p => { p.dataUrl = composeFrame(p.src, w, h); });
+  renderImages(); saveForm();
+}
 async function addFiles(fileList){
-  const files = Array.from(fileList || []).filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name));
-  if (!files.length){ toast('Aucune image reconnue.', 'warn'); return; }
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
   const room = MAX_PHOTOS - photos.length;
   if (room <= 0){ toast(`Maximum ${MAX_PHOTOS} photos.`, 'warn'); return; }
   if (files.length > room) toast(`Seules les ${room} premières photos sont ajoutées (max ${MAX_PHOTOS}).`, 'warn', 3500);
-  let failed = 0;
-  for (const f of files.slice(0, room)){
+  photoBusy = true; updateCreateBtn();
+  const busy = $('photoBusy'); busy.classList.remove('hidden');
+  const failed = [];
+  const list = files.slice(0, room);
+  for (let i = 0; i < list.length; i++){
+    const f = list[i];
+    busy.textContent = `⏳ Lecture des photos… ${i + 1}/${list.length}` + (/\.(heic|heif|hif)$/i.test(f.name) ? ' (conversion HEIC, quelques secondes)' : '');
     try {
-      const { img, url } = await loadImage(f);
+      const src = await decodeAny(f);
       const { w, h } = targetSize();
-      photos.push({ id: uid(), name: f.name, img, dataUrl: photoToDataUrl(img, w, h), thumbUrl: url });
-    } catch(e){ failed++; }
+      photos.push({ id: uid(), name: f.name, src, dataUrl: composeFrame(src, w, h) });
+      renderImages();
+    } catch(e){
+      failed.push(f.name || 'photo');
+      log(`Photo « ${f.name} » illisible : ${e.message}`);
+    }
   }
-  if (failed) toast(`${failed} photo(s) n'ont pas pu être lues (format non pris en charge ?).`, 'error', 4000);
+  busy.classList.add('hidden');
+  photoBusy = false;
+  if (failed.length) toast(`Impossible de lire : ${failed.slice(0, 3).join(', ')}${failed.length > 3 ? '…' : ''}. Essayez une capture d'écran de la photo.`, 'error', 6000);
   renderImages();
 }
 $('fileInput').addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
-// Si la résolution change, on refait les recadrages
-$('sizeSel').addEventListener('change', () => {
-  const { w, h } = targetSize();
-  photos.forEach(p => { p.dataUrl = photoToDataUrl(p.img, w, h); });
-  saveForm();
-});
+// Glisser-déposer (ordinateur)
+const dropZone = document.querySelector('.drop');
+['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.style.borderColor = 'var(--pink)'; }));
+['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.style.borderColor = ''; }));
+dropZone.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
+// Changement de résolution ou de cadrage : on refait les images
+$('sizeSel').addEventListener('change', recomposeAll);
+$('fitSel').addEventListener('change', recomposeAll);
 function renderImages(){
   const box = $('thumbs'); box.replaceChildren();
   photos.forEach((p, i) => {
     const d = el('div', 'thumb');
-    const im = document.createElement('img'); im.src = p.thumbUrl; im.alt = `Photo ${i+1}`;
+    const im = document.createElement('img'); im.src = p.dataUrl; im.alt = `Photo ${i+1} (aperçu du cadrage)`;
     const rm = el('button', null, '×'); rm.type = 'button'; rm.setAttribute('aria-label', `Retirer la photo ${i+1}`);
-    rm.addEventListener('click', () => { URL.revokeObjectURL(p.thumbUrl); photos = photos.filter(x => x.id !== p.id); renderImages(); });
+    rm.addEventListener('click', () => { photos = photos.filter(x => x.id !== p.id); renderImages(); });
     d.append(im, rm, el('span', null, String(i+1)));
     box.appendChild(d);
   });
@@ -484,7 +640,7 @@ function updateModeNote(){
 $('variationsSel').addEventListener('change', () => { updateModeNote(); updateCreateBtn(); saveForm(); });
 
 /* ================= FORMULAIRE (mémorisé) ================= */
-const formFields = ['carDesc','speechText','sceneDesc','negPrompt','sizeSel','framesSel','intervalInput','variationsSel'];
+const formFields = ['carDesc','speechText','sceneDesc','negPrompt','sizeSel','fitSel','framesSel','intervalInput','variationsSel'];
 function saveForm(){
   const o = {}; formFields.forEach(id => o[id] = $(id).value); o.keepFace = $('keepFace').checked;
   store.setJSON(LS.form, o);
@@ -675,6 +831,7 @@ function updateCreateBtn(){
   const btn = $('createBtn'), hint = $('createHint');
   let reason = '';
   if (!apiKey) reason = 'Enregistrez d\'abord votre clé API.';
+  else if (photoBusy) reason = 'Lecture des photos en cours…';
   else if (!photos.length) reason = 'Ajoutez au moins une photo.';
   else if (!$('carDesc').value.trim()) reason = 'Décrivez la voiture.';
   else if (engine.running) reason = 'Une génération est déjà en cours.';
