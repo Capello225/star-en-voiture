@@ -22,7 +22,8 @@ jobs:
     name: APK Android
     runs-on: ubuntu-24.04
     env:
-      SEV_KEYSTORE_BASE64: ${{ secrets.SEV_KEYSTORE_BASE64 }}
+      # Seul secret nécessaire : le mot de passe de la clé (Settings > Secrets and variables > Actions)
+      SEV_KEYSTORE_PASSWORD: ${{ secrets.SEV_KEYSTORE_PASSWORD }}
     steps:
       - uses: actions/checkout@v5
 
@@ -46,29 +47,29 @@ jobs:
         run: npx cap sync android
 
       - name: Compiler l'APK signé
-        if: ${{ env.SEV_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.SEV_KEYSTORE_PASSWORD != '' }}
         working-directory: android
         env:
-          SEV_KEYSTORE_PASSWORD: ${{ secrets.SEV_KEYSTORE_PASSWORD }}
-          SEV_KEY_ALIAS: ${{ secrets.SEV_KEY_ALIAS }}
-          SEV_KEY_PASSWORD: ${{ secrets.SEV_KEY_PASSWORD }}
+          SEV_KEY_ALIAS: starenvoiture
           SEV_VERSION_CODE: ${{ github.run_number }}
           SEV_VERSION_NAME: 1.0.${{ github.run_number }}
         run: |
-          echo "$SEV_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/star.jks"
+          # La clé est stockée chiffrée dans le dépôt (signing/) : déchiffrée uniquement ici, puis effacée
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in ../signing/star-en-voiture.jks.enc -out "$RUNNER_TEMP/star.jks" -pass env:SEV_KEYSTORE_PASSWORD
+          export SEV_KEY_PASSWORD="$SEV_KEYSTORE_PASSWORD"
           chmod +x gradlew
           SEV_KEYSTORE_FILE="$RUNNER_TEMP/star.jks" ./gradlew assembleRelease --no-daemon
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/Star-en-Voiture.apk"
           rm -f "$RUNNER_TEMP/star.jks"
 
       - name: Compiler l'APK de test (aucune clé configurée)
-        if: ${{ env.SEV_KEYSTORE_BASE64 == '' }}
+        if: ${{ env.SEV_KEYSTORE_PASSWORD == '' }}
         working-directory: android
         env:
           SEV_VERSION_CODE: ${{ github.run_number }}
           SEV_VERSION_NAME: 1.0.${{ github.run_number }}
         run: |
-          echo "::warning::Aucune clé de signature : APK de test (les mises à jour devront désinstaller l'ancienne version)."
+          echo "::warning::Secret SEV_KEYSTORE_PASSWORD absent : APK de test (les mises à jour devront désinstaller l'ancienne version)."
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
           cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/Star-en-Voiture.apk"
