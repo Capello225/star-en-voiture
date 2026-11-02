@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Star en Voiture</string>
+    <string name="title_activity_main">Star en Voiture</string>
+    <string name="package_name">com.capello225.starenvoiture</string>
+    <string name="custom_url_scheme">com.capello225.starenvoiture</string>
+</resources>

@@ -1,0 +1,104 @@
+# À chaque envoi sur GitHub (ou à la demande : onglet « Actions » > « Publier Star en Voiture » > « Run workflow ») :
+#  1) compile l'APK Android signé et le publie dans « Releases » (lien fixe : /releases/latest/download/Star-en-Voiture.apk)
+#  2) met en ligne la version web / iPhone sur GitHub Pages
+name: Publier Star en Voiture
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: publication
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    name: APK Android
+    runs-on: ubuntu-24.04
+    env:
+      SEV_KEYSTORE_BASE64: ${{ secrets.SEV_KEYSTORE_BASE64 }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Licences du SDK Android
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Copier l'application web dans le projet Android
+        run: npx cap sync android
+
+      - name: Compiler l'APK signé
+        if: ${{ env.SEV_KEYSTORE_BASE64 != '' }}
+        working-directory: android
+        env:
+          SEV_KEYSTORE_PASSWORD: ${{ secrets.SEV_KEYSTORE_PASSWORD }}
+          SEV_KEY_ALIAS: ${{ secrets.SEV_KEY_ALIAS }}
+          SEV_KEY_PASSWORD: ${{ secrets.SEV_KEY_PASSWORD }}
+          SEV_VERSION_CODE: ${{ github.run_number }}
+          SEV_VERSION_NAME: 1.0.${{ github.run_number }}
+        run: |
+          echo "$SEV_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/star.jks"
+          chmod +x gradlew
+          SEV_KEYSTORE_FILE="$RUNNER_TEMP/star.jks" ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/Star-en-Voiture.apk"
+          rm -f "$RUNNER_TEMP/star.jks"
+
+      - name: Compiler l'APK de test (aucune clé configurée)
+        if: ${{ env.SEV_KEYSTORE_BASE64 == '' }}
+        working-directory: android
+        env:
+          SEV_VERSION_CODE: ${{ github.run_number }}
+          SEV_VERSION_NAME: 1.0.${{ github.run_number }}
+        run: |
+          echo "::warning::Aucune clé de signature : APK de test (les mises à jour devront désinstaller l'ancienne version)."
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/Star-en-Voiture.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Star-en-Voiture-APK
+          path: Star-en-Voiture.apk
+          if-no-files-found: error
+
+      - name: Publier dans « Releases »
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v1.0.${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" Star-en-Voiture.apk --latest \
+            --title "Star en Voiture 1.0.${GITHUB_RUN_NUMBER}" \
+            --notes "Application Android compilée automatiquement. Sur le téléphone : téléchargez Star-en-Voiture.apk puis ouvrez-le pour l'installer. Version iPhone : https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/"
+
+  pages:
+    name: Version web / iPhone
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: www
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,23 @@
+{
+  "name": "star-en-voiture",
+  "version": "1.0.0",
+  "description": "Star en Voiture - ta photo prend vie devant une voiture de luxe (Agnes AI) - Web, iPhone et Android",
+  "private": true,
+  "scripts": {
+    "sync": "npx cap sync android",
+    "icons": "npx capacitor-assets generate --android"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor-community/keep-awake": "8.0.1",
+    "@capacitor/android": "8.6.0",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/cli": "8.6.0",
+    "@capacitor/core": "8.6.0",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5"
+  }
+}

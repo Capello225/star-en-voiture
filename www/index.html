@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#e91e8c">
+<meta name="description" content="Ta photo prend vie devant une voiture de luxe — vidéos IA avec Agnes AI">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Star Voiture">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Star en Voiture</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{
+    --bg:#fafafa;--panel:#fff;--panel-2:#f5f5f5;--border:#e5e5e5;
+    --ink:#1a1a1a;--ink-dim:#666;--ink-faint:#999;
+    --success:#2d8a4e;--error:#c0392b;--warn:#d4a017;--info:#4a6cf7;
+    --pink:#e91e8c;--pink-light:#fce4ec;--pink-dark:#b8136d;
+    --radius:14px;
+  }
+  html,body{background:var(--bg)}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);
+    min-height:100vh;padding:calc(1.25rem + env(safe-area-inset-top)) calc(1rem + env(safe-area-inset-right)) 6rem calc(1rem + env(safe-area-inset-left));
+    font-size:15px;line-height:1.5;max-width:720px;margin:0 auto}
+  input,textarea,select{font-size:16px!important} /* évite le zoom automatique sur iPhone */
+  .platform{font-size:.75rem;text-align:center;color:var(--ink-faint);margin-top:-.6rem;margin-bottom:1rem}
+  h1{font-size:1.6rem;text-align:center;letter-spacing:-.02em}
+  .sub{text-align:center;color:var(--ink-dim);font-style:italic;font-size:.9rem;margin:.2rem 0 1rem}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem}
+  .intro{background:var(--pink-light);border-left:4px solid var(--pink);font-size:.86rem}
+  .intro b{color:var(--pink-dark)}
+  .section-title{font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);
+    display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem}
+  .badge{background:var(--pink);color:#fff;border-radius:999px;padding:.1rem .55rem;font-size:.65rem;letter-spacing:.04em}
+  label.field{display:block;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-dim);margin:.9rem 0 .35rem}
+  label.field .opt{font-weight:400;text-transform:none;letter-spacing:0;font-style:italic}
+  input[type=text],input[type=password],input[type=number],textarea,select{width:100%;font:inherit;color:var(--ink);background:var(--panel);
+    border:1px solid var(--border);border-radius:10px;padding:.7rem .8rem;outline:none}
+  textarea{resize:vertical;min-height:4.5rem}
+  input:focus,textarea:focus,select:focus{border-color:var(--pink);box-shadow:0 0 0 3px var(--pink-light)}
+  .hint{font-size:.75rem;color:var(--ink-faint);margin-top:.3rem}
+  .hint.warn{color:#9a7300}
+  .btn{display:flex;align-items:center;justify-content:center;gap:.4rem;width:100%;border:0;border-radius:10px;padding:.85rem 1rem;
+    font:inherit;font-weight:600;cursor:pointer;min-height:48px}
+  .btn-dark{background:var(--ink);color:#fff}
+  .btn-pink{background:var(--pink);color:#fff;font-size:1.05rem;box-shadow:0 6px 18px rgba(233,30,140,.25)}
+  .btn-pink:disabled{background:#f5b5d6;box-shadow:none;cursor:not-allowed}
+  .btn-ghost{background:var(--panel);color:var(--ink);border:1px solid var(--border)}
+  .btn-stop{background:var(--panel);color:#c0580b;border:1px solid var(--border)}
+  .btn-small{width:auto;min-height:36px;padding:.4rem .8rem;font-size:.82rem;border-radius:8px}
+  .row{display:flex;gap:.5rem;align-items:center}
+  .row>*{flex:1}
+  .keystatus{display:flex;align-items:center;gap:.5rem;font-size:.82rem;background:var(--panel-2);border-radius:8px;padding:.5rem .7rem;margin-top:.6rem}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-faint);flex:0 0 8px}
+  .keystatus.ok{background:#e8f5ec;color:var(--success)} .keystatus.ok .dot{background:var(--success)}
+  .stats{display:flex;justify-content:space-between;font-size:.78rem;color:var(--ink-dim);margin-top:.6rem;gap:.5rem;flex-wrap:wrap}
+  .wake{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.6rem;font-size:.82rem;color:var(--ink-dim)}
+  .wake button.on{background:var(--pink);color:#fff;border-color:var(--pink)}
+  a{color:var(--info)}
+  .drop{border:2px dashed var(--border);border-radius:var(--radius);padding:1.4rem 1rem;text-align:center;cursor:pointer;background:var(--panel);display:block}
+  .drop:hover{border-color:var(--pink)}
+  .drop .plus{font-size:2rem;color:var(--ink-faint);line-height:1}
+  .drop .t{font-weight:600;margin-top:.3rem}
+  .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:.6rem;margin-top:.8rem}
+  .thumb{position:relative;aspect-ratio:9/16;border-radius:10px;overflow:hidden;background:var(--panel-2)}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb button{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:1rem;cursor:pointer}
+  .thumb span{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.6);color:#fff;font-size:.7rem;border-radius:6px;padding:0 .35rem}
+  .mode-note{background:#eef2ff;border-left:3px solid var(--info);border-radius:8px;padding:.6rem .8rem;font-size:.84rem}
+  details.card summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center}
+  details.card summary::-webkit-details-marker{display:none}
+  details.card summary::after{content:"▾";color:var(--ink-faint)}
+  details[open].card summary::after{content:"▴"}
+  .check{display:flex;gap:.5rem;align-items:flex-start;margin-top:.9rem;font-size:.85rem}
+  .check input{margin-top:.25rem;width:18px;height:18px;accent-color:var(--pink)}
+  .actions{display:grid;gap:.7rem;margin-bottom:1rem}
+  .progress-head{display:flex;justify-content:space-between;font-size:.85rem;font-weight:600;margin-bottom:.4rem}
+  .progress-head .eta{font-weight:400;color:var(--ink-dim)}
+  .bar{height:6px;background:var(--panel-2);border-radius:999px;overflow:hidden;margin-bottom:.8rem}
+  .bar i{display:block;height:100%;width:0;background:var(--pink);transition:width .4s}
+  .item{border:1px solid var(--border);border-radius:10px;padding:.65rem .8rem;margin-bottom:.55rem;background:var(--panel)}
+  .item-head{display:flex;align-items:center;gap:.6rem;font-size:.88rem}
+  .item-head .name{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .item-head .st{font-size:.76rem;color:var(--ink-faint);text-align:right}
+  .item .ic{width:10px;height:10px;border-radius:50%;border:2px solid var(--ink-faint);flex:0 0 10px}
+  .item.waiting{opacity:.6}
+  .item.submitting{border-color:var(--warn)} .item.submitting .ic{border-color:var(--warn);animation:pulse 1s infinite}
+  .item.running{border-color:var(--pink)} .item.running .ic{border-color:var(--pink);background:var(--pink);animation:pulse 1.2s infinite}
+  .item.done .ic{border-color:var(--success);background:var(--success)} .item.done .st{color:var(--success)}
+  .item.failed{border-color:#f0c4be} .item.failed .ic{border-color:var(--error);background:var(--error)} .item.failed .st{color:var(--error)}
+  .item.cancelled .st{color:var(--ink-faint)}
+  @keyframes pulse{50%{opacity:.35}}
+  .item .media{margin-top:.6rem}
+  .item video{width:100%;max-height:70vh;border-radius:10px;background:#000;display:block}
+  .item .err{font-size:.78rem;color:var(--error);margin-top:.4rem;word-break:break-word}
+  .item .tools{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
+  .item .tools .btn{flex:1}
+  .statusbar{position:fixed;left:0;right:0;bottom:0;background:#1a1a1a;color:#eee;font-size:.82rem;padding:.65rem 1rem calc(.65rem + env(safe-area-inset-bottom));
+    display:flex;align-items:center;gap:.6rem;z-index:20}
+  .statusbar .spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .toast{position:fixed;left:50%;top:1rem;transform:translate(-50%,-150%);background:var(--ink);color:#fff;padding:.7rem 1rem;border-radius:10px;
+    font-size:.88rem;z-index:30;transition:transform .3s;max-width:92vw;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  .toast.visible{transform:translate(-50%,0)}
+  .toast.success{background:var(--success)} .toast.error{background:var(--error)} .toast.warn{background:#9a7300}
+  .hidden{display:none!important}
+  .log{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;color:var(--ink-dim);max-height:160px;overflow:auto;white-space:pre-wrap;background:var(--panel-2);border-radius:8px;padding:.5rem;margin-top:.5rem}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<h1>🚗 Star en Voiture</h1>
+<p class="sub">Ta photo prend vie devant une voiture de luxe</p>
+<p class="platform" id="platformTag"></p>
+
+<div class="card hidden" id="iosInstall" style="background:#eef2ff;border-color:#d6defc;font-size:.86rem">
+  <b>📲 Installer sur ton iPhone :</b> touche <b>Partager</b> <span aria-hidden="true">(carré avec flèche ↑)</span> en bas de Safari,
+  puis <b>« Sur l'écran d'accueil »</b>. L'appli s'ouvrira ensuite en plein écran comme une vraie application.
+  <div style="margin-top:.5rem"><button class="btn btn-ghost btn-small" id="iosInstallClose" type="button">Compris</button></div>
+</div>
+
+<div class="card intro">
+  <b>Comment ça marche :</b> ajoute <b>1 photo → plusieurs vidéos</b> différentes (variations aléatoires de caméra, lumière, mouvement),
+  ou <b>plusieurs photos → 1 vidéo par photo</b>. La personne marche devant la voiture et prononce ton texte.
+  Chaque vidéo s'affiche <b>dans la file d'attente</b> dès qu'elle est prête. Format portrait <b>9:16</b>.
+</div>
+
+<!-- CLÉ API -->
+<div class="card">
+  <div class="section-title">🔑 Clé API Agnes</div>
+  <div class="row">
+    <input type="password" id="apiKeyInput" placeholder="Collez votre clé API ici (sk-...)" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="row" style="margin-top:.6rem">
+    <button class="btn btn-dark" id="saveKeyBtn" type="button">Enregistrer la clé</button>
+    <button class="btn btn-ghost hidden" id="deleteKeyBtn" type="button" style="flex:0 0 auto;width:auto">Supprimer</button>
+  </div>
+  <div class="keystatus" id="keyStatus"><span class="dot"></span><span id="keyStatusText">Aucune clé API enregistrée</span></div>
+  <p class="hint">Clé gratuite sur <a href="https://platform.agnes-ai.com" target="_blank" rel="noopener">platform.agnes-ai.com</a> → API Keys → Create new secret key.
+    La clé reste uniquement dans ce navigateur, sur ce téléphone.</p>
+  <div class="stats">
+    <span id="avgSpeed">📊 Temps moyen : en attente</span>
+    <span id="genCount">0 génération</span>
+  </div>
+  <div class="wake">
+    <span id="wakeText">☀️ Garder l'écran allumé pendant la création</span>
+    <button class="btn btn-ghost btn-small" id="wakeBtn" type="button">Activer</button>
+  </div>
+</div>
+
+<!-- PHOTOS -->
+<div class="card">
+  <div class="section-title">🖼️ Tes photos</div>
+  <label class="drop" for="fileInput">
+    <div class="plus">+</div>
+    <div class="t">Ajoutez vos photos</div>
+    <div class="hint">1 photo = plusieurs vidéos · Plusieurs photos = 1 vidéo par photo (10 max)</div>
+  </label>
+  <input type="file" id="fileInput" accept="image/*" multiple class="hidden">
+  <div class="thumbs" id="thumbs"></div>
+</div>
+
+<!-- SCÈNE -->
+<div class="card">
+  <div class="section-title">🎬 La scène <span class="badge">À PERSONNALISER</span></div>
+  <div class="mode-note" id="modeNote">💡 Ajoutez une photo pour voir le mode de génération.</div>
+
+  <div id="variationsWrap" class="hidden">
+    <label class="field" for="variationsSel">🎲 Nombre de vidéos à créer</label>
+    <select id="variationsSel">
+      <option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option>
+      <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+    </select>
+  </div>
+
+  <label class="field" for="carDesc">🚗 Description de la voiture</label>
+  <textarea id="carDesc" maxlength="400">Lamborghini rose vif avec une carrosserie entièrement recouverte de street art coloré, graffitis, fresques urbaines. Jantes chromées, reflets lumineux, vitres teintées, aileron arrière sportif.</textarea>
+  <p class="hint">Décrivez la voiture : marque, couleur, customisation.</p>
+
+  <label class="field" for="speechText">💬 Texte que le personnage doit dire</label>
+  <textarea id="speechText" maxlength="300">Abonne-toi à mon compte et je t'offre un tour dans cette Lamborghini. Par contre je ne sais pas conduire, c'est toi qui conduiras.</textarea>
+  <p class="hint" id="speechHint">Le personnage prononcera ce texte en regardant la caméra.</p>
+
+  <label class="field" for="sceneDesc">🎥 Description de la scène <span class="opt">(optionnel)</span></label>
+  <textarea id="sceneDesc" maxlength="400" placeholder="Ex : Le personnage marche lentement devant la voiture sur une avenue urbaine ensoleillée à l'heure dorée…"></textarea>
+  <p class="hint">Décrivez le mouvement du personnage, le lieu, l'ambiance.</p>
+</div>
+
+<!-- RÉGLAGES -->
+<details class="card" id="settings">
+  <summary><span class="section-title" style="margin:0">⚙️ Réglages techniques</span></summary>
+  <label class="field" for="sizeSel">Résolution (portrait 9:16)</label>
+  <select id="sizeSel">
+    <option value="576x1024" selected>576 × 1024 — rapide (recommandé)</option>
+    <option value="768x1344">768 × 1344 — plus net, plus lent</option>
+  </select>
+  <label class="field" for="framesSel">Durée</label>
+  <select id="framesSel">
+    <option value="81">≈ 3 secondes</option>
+    <option value="121" selected>≈ 5 secondes (recommandé)</option>
+    <option value="161">≈ 7 secondes</option>
+    <option value="241">≈ 10 secondes</option>
+  </select>
+  <label class="field" for="intervalInput">Délai minimum entre deux créations (secondes)</label>
+  <input type="number" id="intervalInput" min="62" max="600" step="1" value="62" inputmode="numeric">
+  <p class="hint">Le compte gratuit Agnes accepte environ 1 vidéo par minute. 62 s minimum ; l'appli ralentit seule si l'API demande d'attendre.</p>
+  <label class="field" for="negPrompt">À éviter dans la vidéo <span class="opt">(prompt négatif)</span></label>
+  <textarea id="negPrompt" maxlength="400">visage déformé, changement d'identité, mains déformées, membres en trop, flou, basse qualité, texte, filigrane, logo</textarea>
+  <label class="check"><input type="checkbox" id="keepFace" checked> <span>Insister sur la ressemblance du visage avec la photo</span></label>
+</details>
+
+<!-- ACTIONS -->
+<div class="actions">
+  <button class="btn btn-pink" id="createBtn" type="button" disabled>Créer les vidéos</button>
+  <button class="btn btn-stop hidden" id="stopBtn" type="button">⏹ Arrêter la génération</button>
+  <p class="hint" id="createHint" style="text-align:center"></p>
+</div>
+
+<!-- FILE D'ATTENTE -->
+<div class="card hidden" id="queueCard">
+  <div class="progress-head"><span id="progressText">Progression : 0/0</span><span class="eta" id="etaText"></span></div>
+  <div class="bar"><i id="progressBar"></i></div>
+  <div id="queueList"></div>
+  <div class="row" style="margin-top:.4rem">
+    <button class="btn btn-ghost btn-small" id="clearBtn" type="button">Vider la liste</button>
+    <button class="btn btn-ghost btn-small" id="logBtn" type="button">Journal technique</button>
+  </div>
+  <div class="log hidden" id="log"></div>
+</div>
+
+<div class="statusbar hidden" id="statusBar"><span class="spin"></span><span id="statusText"></span></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= CONSTANTES ================= */
+const API_ROOT = 'https://apihub.agnes-ai.com';
+const MODEL = 'agnes-video-v2.0';           // modèle vidéo gratuit d'Agnes
+const MIN_INTERVAL = 62;                   // 1 création / minute (+2 s de marge)
+const MAX_INTERVAL = 300;
+const POLL_EVERY = 6000;                   // vérification d'une vidéo toutes les 6 s
+const POLL_TIMEOUT = 25 * 60 * 1000;       // abandon après 25 min
+const MAX_PHOTOS = 10;
+const LS = { key:'sev_api_key', stats:'sev_stats', wake:'sev_wake', jobs:'sev_jobs', form:'sev_form' };
+
+/* ================= OUTILS ================= */
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d=null){ try { const v = localStorage.getItem(k); return v === null ? d : v; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, v); return true; } catch(e){ return false; } },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} },
+  getJSON(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+  setJSON(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } }
+};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const fmtDur = s => { s = Math.max(0, Math.round(s)); const m = Math.floor(s/60), r = s%60; return m ? `${m}m ${String(r).padStart(2,'0')}s` : `${r}s`; };
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+let toastTimer = null;
+function toast(msg, type='success', ms=2800){
+  const t = $('toast');
+  t.classList.remove('visible','success','error','warn');
+  void t.offsetWidth;
+  t.textContent = msg;
+  t.classList.add(type, 'visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('visible'), ms);
+}
+const logLines = [];
+function log(msg){
+  const line = `[${new Date().toLocaleTimeString('fr-FR')}] ${msg}`;
+  logLines.push(line); if (logLines.length > 200) logLines.shift();
+  const box = $('log'); if (!box.classList.contains('hidden')) { box.textContent = logLines.join('\n'); box.scrollTop = box.scrollHeight; }
+}
+
+/* ================= PLATEFORME ================= */
+// Même code pour : APK Android (Capacitor), iPhone (Safari / écran d'accueil) et navigateur.
+const Cap = window.Capacitor;
+const isNative = !!(Cap && typeof Cap.isNativePlatform === 'function' && Cap.isNativePlatform());
+const Plugins = (Cap && Cap.Plugins) || {};
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+$('platformTag').textContent = isNative ? 'Application Android' : (isIOS ? (isStandalone ? 'Application iPhone' : 'Version web · iPhone') : 'Version web');
+if (isIOS && !isStandalone && !isNative && store.get('sev_ios_hint', '0') !== '1'){
+  $('iosInstall').classList.remove('hidden');
+}
+$('iosInstallClose').addEventListener('click', () => { $('iosInstall').classList.add('hidden'); store.set('sev_ios_hint', '1'); });
+// Dans l'APK, les liens externes s'ouvrent dans le navigateur du téléphone
+if (isNative){
+  document.addEventListener('click', e => {
+    const a = e.target.closest && e.target.closest('a[target="_blank"]');
+    if (!a) return;
+    e.preventDefault();
+    window.location.href = a.href; // Capacitor transmet les adresses externes au navigateur
+  });
+}
+
+/* ================= CLÉ API ================= */
+let apiKey = (store.get(LS.key, '') || '').trim();
+function maskKey(k){ return k.length > 10 ? `${k.slice(0,7)}…${k.slice(-4)}` : '••••'; }
+function updateApiPanel(){
+  const ok = !!apiKey;
+  $('keyStatus').classList.toggle('ok', ok);
+  $('keyStatusText').textContent = ok ? `Clé API active — ${maskKey(apiKey)}` : 'Aucune clé API enregistrée';
+  $('deleteKeyBtn').classList.toggle('hidden', !ok);
+  $('apiKeyInput').value = '';
+  $('apiKeyInput').placeholder = ok ? 'Coller une autre clé pour la remplacer' : 'Collez votre clé API ici (sk-...)';
+  updateCreateBtn();
+}
+$('saveKeyBtn').addEventListener('click', () => {
+  const v = $('apiKeyInput').value.replace(/\s+/g, '');
+  if (!v){ toast('Collez d\'abord votre clé API.', 'warn'); return; }
+  if (v.length < 16){ toast('Cette clé semble trop courte. Vérifiez la copie.', 'error'); return; }
+  apiKey = v;
+  if (!store.set(LS.key, v)) toast('Clé active pour cette session (stockage du navigateur indisponible).', 'warn');
+  else toast('Clé API enregistrée ✓');
+  updateApiPanel();
+});
+$('deleteKeyBtn').addEventListener('click', () => {
+  apiKey = ''; store.del(LS.key); updateApiPanel(); toast('Clé supprimée de ce téléphone.', 'warn');
+});
+
+/* ================= STATISTIQUES (ETA) ================= */
+let stats = store.getJSON(LS.stats, { times: [], count: 0 });
+if (!Array.isArray(stats.times)) stats = { times: [], count: 0 };
+function avgGen(){
+  if (!stats.times.length) return 150; // estimation par défaut : 2 min 30
+  return stats.times.reduce((a,b)=>a+b,0) / stats.times.length;
+}
+function recordGen(sec){
+  if (!(sec > 5 && sec < 3600)) return;
+  stats.times.push(Math.round(sec)); if (stats.times.length > 15) stats.times.shift();
+  stats.count = (stats.count||0) + 1;
+  store.setJSON(LS.stats, stats); updateTimingDisplay();
+}
+function updateTimingDisplay(){
+  $('avgSpeed').textContent = stats.times.length ? `📊 Temps moyen : ${fmtDur(avgGen())} par vidéo` : '📊 Temps moyen : en attente';
+  const c = stats.count || 0;
+  $('genCount').textContent = `${c} génération${c > 1 ? 's' : ''}`;
+}
+
+/* ================= ANTI-VEILLE ================= */
+let wakeEnabled = store.get(LS.wake, '0') === '1';
+let wakeLock = null, fallbackVideo = null;
+let nativeAwake = false;
+async function activateWakeLock(){
+  if (isNative && Plugins.KeepAwake){
+    try { await Plugins.KeepAwake.keepAwake(); nativeAwake = true; return true; }
+    catch(e){ log('KeepAwake indisponible : ' + e.message); }
+  }
+  try {
+    if ('wakeLock' in navigator){
+      if (wakeLock && !wakeLock.released) return true;
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { updateWakeStatus(); });
+      return true;
+    }
+  } catch(e){ log('Wake Lock refusé : ' + e.message); }
+  // Solution de secours : petite vidéo invisible en boucle (iOS / anciens navigateurs)
+  try {
+    if (!fallbackVideo){
+      const c = document.createElement('canvas'); c.width = c.height = 2;
+      const ctx = c.getContext('2d'); let f = 0;
+      setInterval(() => { ctx.fillStyle = (f++ % 2) ? '#000' : '#010101'; ctx.fillRect(0,0,2,2); }, 1000);
+      fallbackVideo = document.createElement('video');
+      fallbackVideo.muted = true; fallbackVideo.playsInline = true; fallbackVideo.setAttribute('playsinline','');
+      fallbackVideo.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:.01;pointer-events:none;z-index:-1';
+      if (c.captureStream) fallbackVideo.srcObject = c.captureStream(1);
+      document.body.appendChild(fallbackVideo);
+    }
+    await fallbackVideo.play();
+    return true;
+  } catch(e){ log('Anti-veille de secours impossible : ' + e.message); return false; }
+}
+function releaseWakeLock(){
+  if (nativeAwake){ try { Plugins.KeepAwake.allowSleep(); } catch(e){} nativeAwake = false; }
+  try { if (wakeLock) wakeLock.release(); } catch(e){}
+  wakeLock = null;
+  try { if (fallbackVideo) fallbackVideo.pause(); } catch(e){}
+}
+function updateWakeStatus(){
+  const active = nativeAwake || (wakeLock && !wakeLock.released) || (fallbackVideo && !fallbackVideo.paused);
+  const b = $('wakeBtn');
+  b.textContent = wakeEnabled ? 'Activé' : 'Activer';
+  b.classList.toggle('on', wakeEnabled);
+  $('wakeText').textContent = wakeEnabled
+    ? (active ? '☀️ Écran maintenu allumé' : '☀️ Anti-veille prêt (s\'active pendant la création)')
+    : '☀️ Garder l\'écran allumé pendant la création';
+}
+$('wakeBtn').addEventListener('click', async () => {
+  wakeEnabled = !wakeEnabled; store.set(LS.wake, wakeEnabled ? '1' : '0');
+  if (wakeEnabled){ const ok = await activateWakeLock(); if (!ok) toast('Votre navigateur ne permet pas de bloquer la mise en veille.', 'warn', 4000); }
+  else releaseWakeLock();
+  updateWakeStatus();
+});
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible'){
+    if (wakeEnabled && (engine.running || hasActive())) { await activateWakeLock(); updateWakeStatus(); }
+    // Rattrapage des vérifications retardées pendant que l'écran était éteint
+    jobs.forEach(j => { if (j.status === 'running' && !j.pollTimer) schedulePoll(j, 500); });
+  }
+});
+
+/* ================= PHOTOS ================= */
+let photos = []; // { id, name, dataUrl, thumbUrl }
+function targetSize(){
+  const [w, h] = $('sizeSel').value.split('x').map(Number);
+  return { w, h };
+}
+function loadImage(file){
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => resolve({ img, url });
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image illisible')); };
+    img.src = url;
+  });
+}
+// Recadre la photo en 9:16 centré, à la taille de la vidéo, compressée en JPEG.
+function photoToDataUrl(img, w, h){
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+  const r = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+  const dw = img.naturalWidth * r, dh = img.naturalHeight * r;
+  // Légèrement décalé vers le haut pour garder le visage
+  const dx = (w - dw) / 2, dy = Math.min(0, Math.max(h - dh, (h - dh) * 0.35));
+  ctx.drawImage(img, dx, dy, dw, dh);
+  let q = 0.9, out = c.toDataURL('image/jpeg', q);
+  while (out.length > 1_400_000 && q > 0.5){ q -= 0.1; out = c.toDataURL('image/jpeg', q); }
+  return out;
+}
+async function addFiles(fileList){
+  const files = Array.from(fileList || []).filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name));
+  if (!files.length){ toast('Aucune image reconnue.', 'warn'); return; }
+  const room = MAX_PHOTOS - photos.length;
+  if (room <= 0){ toast(`Maximum ${MAX_PHOTOS} photos.`, 'warn'); return; }
+  if (files.length > room) toast(`Seules les ${room} premières photos sont ajoutées (max ${MAX_PHOTOS}).`, 'warn', 3500);
+  let failed = 0;
+  for (const f of files.slice(0, room)){
+    try {
+      const { img, url } = await loadImage(f);
+      const { w, h } = targetSize();
+      photos.push({ id: uid(), name: f.name, img, dataUrl: photoToDataUrl(img, w, h), thumbUrl: url });
+    } catch(e){ failed++; }
+  }
+  if (failed) toast(`${failed} photo(s) n'ont pas pu être lues (format non pris en charge ?).`, 'error', 4000);
+  renderImages();
+}
+$('fileInput').addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+// Si la résolution change, on refait les recadrages
+$('sizeSel').addEventListener('change', () => {
+  const { w, h } = targetSize();
+  photos.forEach(p => { p.dataUrl = photoToDataUrl(p.img, w, h); });
+  saveForm();
+});
+function renderImages(){
+  const box = $('thumbs'); box.replaceChildren();
+  photos.forEach((p, i) => {
+    const d = el('div', 'thumb');
+    const im = document.createElement('img'); im.src = p.thumbUrl; im.alt = `Photo ${i+1}`;
+    const rm = el('button', null, '×'); rm.type = 'button'; rm.setAttribute('aria-label', `Retirer la photo ${i+1}`);
+    rm.addEventListener('click', () => { URL.revokeObjectURL(p.thumbUrl); photos = photos.filter(x => x.id !== p.id); renderImages(); });
+    d.append(im, rm, el('span', null, String(i+1)));
+    box.appendChild(d);
+  });
+  updateModeNote(); updateCreateBtn();
+}
+function updateModeNote(){
+  const n = photos.length, note = $('modeNote');
+  $('variationsWrap').classList.toggle('hidden', n !== 1);
+  if (n === 0) note.textContent = '💡 Ajoutez une photo pour voir le mode de génération.';
+  else if (n === 1) note.textContent = `🎯 Mode 1 photo : ${$('variationsSel').value} vidéo(s) différente(s) seront générées à partir de cette photo, avec des variations aléatoires (mouvement, caméra, lumière).`;
+  else note.textContent = `🎯 Mode ${n} photos : 1 vidéo par photo, soit ${n} vidéos, chacune avec une variation aléatoire.`;
+}
+$('variationsSel').addEventListener('change', () => { updateModeNote(); updateCreateBtn(); saveForm(); });
+
+/* ================= FORMULAIRE (mémorisé) ================= */
+const formFields = ['carDesc','speechText','sceneDesc','negPrompt','sizeSel','framesSel','intervalInput','variationsSel'];
+function saveForm(){
+  const o = {}; formFields.forEach(id => o[id] = $(id).value); o.keepFace = $('keepFace').checked;
+  store.setJSON(LS.form, o);
+}
+function loadForm(){
+  const o = store.getJSON(LS.form, null); if (!o) return;
+  formFields.forEach(id => { if (typeof o[id] === 'string') $(id).value = o[id]; });
+  if (typeof o.keepFace === 'boolean') $('keepFace').checked = o.keepFace;
+}
+formFields.forEach(id => $(id).addEventListener('input', () => { saveForm(); updateSpeechHint(); updateCreateBtn(); }));
+$('keepFace').addEventListener('change', saveForm);
+$('framesSel').addEventListener('change', updateSpeechHint);
+function updateSpeechHint(){
+  const words = $('speechText').value.trim().split(/\s+/).filter(Boolean).length;
+  const need = words / 2.6; // débit de parole moyen
+  const dur = (Number($('framesSel').value) - 1) / 24;
+  const h = $('speechHint');
+  if (words && need > dur + 0.5){
+    h.textContent = `⚠️ ${words} mots ≈ ${need.toFixed(0)} s de parole, mais la vidéo dure ≈ ${dur.toFixed(0)} s. Raccourcissez le texte ou allongez la durée (Réglages).`;
+    h.classList.add('warn');
+  } else {
+    h.textContent = 'Le personnage prononcera ce texte en regardant la caméra.';
+    h.classList.remove('warn');
+  }
+}
+
+/* ================= CONSTRUCTION DU PROMPT ================= */
+const VARIATIONS = {
+  camera: [
+    'slow tracking shot following the person from the side',
+    'smooth dolly-in from medium shot to close-up on the face',
+    'low-angle hero shot, the car looks powerful behind the person',
+    'slow 180-degree orbit around the person, the car always visible',
+    'steady front-facing shot walking backwards in front of the person',
+    'gentle crane shot descending from above the car to eye level',
+    'handheld vlog-style selfie framing, natural slight camera shake',
+    'slow push-in with shallow depth of field, car slightly blurred behind'
+  ],
+  light: [
+    'warm golden hour sunlight, long soft shadows',
+    'bright sunny day, vivid saturated colors',
+    'blue hour dusk with glowing city lights and neon reflections on the car body',
+    'soft overcast daylight, even flattering light on the face',
+    'night street lit by neon signs, glossy reflections on the bodywork',
+    'cinematic backlight with sun flare behind the car'
+  ],
+  motion: [
+    'walks slowly and confidently along the car, one hand gliding just above the bodywork',
+    'walks towards the camera with a big smile, then stops next to the driver door',
+    'strolls past the front of the car, turning the head towards the camera',
+    'walks along the car and leans casually against it at the end',
+    'walks with relaxed swagger, gesturing towards the car while talking'
+  ],
+  place: [
+    'a sunny luxury avenue lined with palm trees',
+    'a modern city boulevard with glass buildings',
+    'an urban street with colorful murals',
+    'a seaside promenade with the ocean in the background',
+    'an upscale hotel entrance with marble steps'
+  ]
+};
+function pick(arr, used){
+  const pool = arr.filter(x => !used.has(x)); const src = pool.length ? pool : arr;
+  const v = src[Math.floor(Math.random() * src.length)]; used.add(v); return v;
+}
+function buildPrompt(usedSets){
+  const clean = s => s.trim().replace(/\s+/g, ' ').replace(/[\s.;,!]+$/, '');
+  const car = clean($('carDesc').value);
+  const text = $('speechText').value.trim().replace(/\s+/g, ' ').replace(/"/g, '”');
+  const scene = clean($('sceneDesc').value);
+  const cam = pick(VARIATIONS.camera, usedSets.camera);
+  const light = pick(VARIATIONS.light, usedSets.light);
+  const motion = pick(VARIATIONS.motion, usedSets.motion);
+  const place = scene ? '' : pick(VARIATIONS.place, usedSets.place);
+  const parts = [
+    'Vertical 9:16 cinematic social media video, photorealistic.',
+    $('keepFace').checked
+      ? 'The exact same person as in the reference image, keeping identical face, facial features, skin tone, hairstyle and outfit; the identity must not change.'
+      : 'The person from the reference image.',
+    `The person ${motion}, in front of a luxury sports car: ${car}.`,
+    scene ? `Scene: ${scene}.` : `Location: ${place}.`,
+    text ? `While walking, the person looks into the camera and speaks in French with clear natural lip-sync, saying: "${text}"` : '',
+    `Camera: ${cam}. Lighting: ${light}.`,
+    'Natural realistic motion, sharp details, consistent anatomy.'
+  ];
+  return { prompt: parts.filter(Boolean).join(' '), summary: `${cam.split(',')[0]} · ${light.split(',')[0]}` };
+}
+function freshUsed(){ return { camera:new Set(), light:new Set(), motion:new Set(), place:new Set() }; }
+
+/* ================= API AGNES ================= */
+class ApiError extends Error {
+  constructor(msg, status, retryAfter){ super(msg); this.status = status; this.retryAfter = retryAfter; }
+}
+function errMessage(data, status){
+  if (data && typeof data === 'object'){
+    const e = data.error;
+    if (e && typeof e === 'object' && e.message) return String(e.message);
+    if (typeof e === 'string') return e;
+    if (data.message) return String(data.message);
+    if (data.detail) return typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
+  }
+  return `Erreur HTTP ${status}`;
+}
+async function api(method, path, body){
+  if (isNative && Plugins.CapacitorHttp) return apiNative(method, path, body);
+  let res;
+  try {
+    res = await fetch(API_ROOT + path, {
+      method,
+      headers: Object.assign({ 'Authorization': 'Bearer ' + apiKey }, body ? { 'Content-Type': 'application/json' } : {}),
+      body: body ? JSON.stringify(body) : undefined
+    });
+  } catch(e){
+    const msg = navigator.onLine === false
+      ? 'Pas de connexion Internet.'
+      : 'Connexion à Agnes impossible (réseau, ou appel bloqué par le navigateur). Si ça persiste sur ce navigateur, utilisez l\'APK Android ou un autre navigateur.';
+    throw new ApiError(msg, 0);
+  }
+  const raw = await res.text();
+  let data = null; try { data = raw ? JSON.parse(raw) : null; } catch(e){ data = raw; }
+  if (!res.ok){
+    const ra = Number(res.headers.get('Retry-After'));
+    throw new ApiError(errMessage(data, res.status), res.status, Number.isFinite(ra) && ra > 0 ? ra : null);
+  }
+  // Une réponse avec "error" mais aussi un "status" (ex. vidéo échouée) est traitée par l'appelant
+  if (data && typeof data === 'object' && data.error && pickField(data, ['status']) == null) throw new ApiError(errMessage(data, res.status), res.status);
+  if (!data || typeof data !== 'object') throw new ApiError('Réponse inattendue de l\'API.', res.status);
+  return data;
+}
+// Version Android : requête faite par le téléphone lui-même (pas de restriction du navigateur)
+async function apiNative(method, path, body){
+  let res;
+  try {
+    res = await Plugins.CapacitorHttp.request({
+      url: API_ROOT + path, method,
+      headers: Object.assign({ 'Authorization': 'Bearer ' + apiKey, 'Accept': 'application/json' }, body ? { 'Content-Type': 'application/json' } : {}),
+      data: body || undefined,
+      connectTimeout: 30000, readTimeout: 120000
+    });
+  } catch(e){
+    throw new ApiError('Connexion impossible (réseau coupé ou API inaccessible).', 0);
+  }
+  let data = res.data;
+  if (typeof data === 'string'){ try { data = data ? JSON.parse(data) : null; } catch(e){} }
+  const st = Number(res.status) || 0;
+  if (st < 200 || st >= 300){
+    const h = res.headers || {};
+    const ra = Number(h['Retry-After'] || h['retry-after']);
+    throw new ApiError(errMessage(data, st), st, Number.isFinite(ra) && ra > 0 ? ra : null);
+  }
+  if (data && typeof data === 'object' && data.error && pickField(data, ['status']) == null) throw new ApiError(errMessage(data, st), st);
+  if (!data || typeof data !== 'object') throw new ApiError('Réponse inattendue de l\'API.', st);
+  return data;
+}
+const pickField = (d, keys) => {
+  for (const k of keys){ if (d && d[k] != null && d[k] !== '') return d[k]; }
+  if (d && d.data && typeof d.data === 'object') for (const k of keys){ if (d.data[k] != null && d.data[k] !== '') return d.data[k]; }
+  return null;
+};
+function extractUrl(d){
+  for (const k of ['url','video_url','remixed_from_video_id','output_url']){
+    const v = pickField(d, [k]);
+    if (typeof v === 'string' && /^https?:\/\//.test(v)) return v;
+  }
+  return null;
+}
+
+/* ================= FILE D'ATTENTE ================= */
+let jobs = [];
+const engine = { running:false, interval:MIN_INTERVAL, nextAt:0, streak:0, inFlight:false, tick:null, total:0 };
+const hasActive = () => jobs.some(j => j.status === 'running' || j.status === 'submitting');
+
+function userInterval(){
+  const v = Math.round(Number($('intervalInput').value));
+  return Number.isFinite(v) ? Math.min(600, Math.max(MIN_INTERVAL, v)) : MIN_INTERVAL;
+}
+
+function saveJobs(){
+  const light = jobs.filter(j => j.status !== 'cancelled').map(j => ({
+    id:j.id, label:j.label, summary:j.summary, status:j.status, videoId:j.videoId, taskId:j.taskId,
+    url:j.url, error:j.error, submittedAt:j.submittedAt, doneAt:j.doneAt
+  }));
+  store.setJSON(LS.jobs, light.slice(-30));
+}
+
+function updateCreateBtn(){
+  const n = photos.length === 1 ? Number($('variationsSel').value) : photos.length;
+  const btn = $('createBtn'), hint = $('createHint');
+  let reason = '';
+  if (!apiKey) reason = 'Enregistrez d\'abord votre clé API.';
+  else if (!photos.length) reason = 'Ajoutez au moins une photo.';
+  else if (!$('carDesc').value.trim()) reason = 'Décrivez la voiture.';
+  else if (engine.running) reason = 'Une génération est déjà en cours.';
+  btn.disabled = !!reason;
+  btn.textContent = engine.running ? `Création… (${doneCount()}/${engine.total})` : (n ? `Créer ${n} vidéo${n > 1 ? 's' : ''}` : 'Créer les vidéos');
+  hint.textContent = engine.running ? '' : reason;
+}
+const doneCount = () => jobs.filter(j => j.batch === engine.batch && j.status === 'done').length;
+
+$('createBtn').addEventListener('click', () => {
+  if (engine.running) return;
+  if (!apiKey || !photos.length) { updateCreateBtn(); return; }
+  const text = $('speechText').value.trim();
+  if (!text && !confirm('Aucun texte à dire : le personnage ne parlera pas. Continuer ?')) return;
+  startBatch();
+});
+
+function startBatch(){
+  const batch = uid();
+  const used = freshUsed();
+  const newJobs = [];
+  if (photos.length === 1){
+    const n = Number($('variationsSel').value);
+    for (let i = 0; i < n; i++){
+      const { prompt, summary } = buildPrompt(used);
+      newJobs.push(makeJob(batch, `Variation ${i+1}`, summary, photos[0].dataUrl, prompt));
+    }
+  } else {
+    photos.forEach((p, i) => {
+      const { prompt, summary } = buildPrompt(used);
+      newJobs.push(makeJob(batch, `Photo ${i+1}`, summary, p.dataUrl, prompt));
+    });
+  }
+  // Les anciennes vidéos annulées/échouées sont retirées, les vidéos terminées restent visibles
+  jobs = jobs.filter(j => j.status === 'done' || j.status === 'running');
+  jobs.push(...newJobs);
+  engine.batch = batch; engine.total = newJobs.length;
+  engine.running = true; engine.streak = 0;
+  engine.interval = Math.max(engine.interval, userInterval());
+  if (!engine.nextAt || engine.nextAt < Date.now()) engine.nextAt = Date.now();
+  newJobs.forEach(renderJob);
+  $('queueCard').classList.remove('hidden');
+  $('stopBtn').classList.remove('hidden');
+  if (wakeEnabled) activateWakeLock().then(updateWakeStatus);
+  log(`Lancement de ${newJobs.length} création(s) — délai ${engine.interval}s`);
+  saveJobs(); updateCreateBtn(); startTicker();
+  $('queueCard').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function makeJob(batch, label, summary, image, prompt){
+  const [w, h] = $('sizeSel').value.split('x').map(Number);
+  return {
+    id: uid(), batch, label, summary, image, prompt, status:'waiting', attempts:0,
+    params: { width:w, height:h, num_frames:Number($('framesSel').value), frame_rate:24, negative_prompt:$('negPrompt').value.trim() },
+    el:null
+  };
+}
+
+$('stopBtn').addEventListener('click', () => {
+  if (!engine.running) return;
+  engine.running = false;
+  let n = 0;
+  jobs.forEach(j => { if (j.status === 'waiting'){ j.status = 'cancelled'; j.image = null; n++; updateJob(j); } });
+  log(`Arrêt demandé — ${n} création(s) annulée(s)`);
+  toast(hasActive() ? 'Arrêté. Les vidéos déjà lancées vont quand même arriver.' : 'Génération arrêtée.', 'warn', 4000);
+  $('stopBtn').classList.add('hidden');
+  saveJobs(); updateCreateBtn(); refreshProgress();
+});
+
+$('clearBtn').addEventListener('click', () => {
+  if (engine.running || hasActive()){
+    if (!confirm('Des vidéos sont encore en cours. Vider quand même la liste ? (elles seront perdues)')) return;
+    engine.running = false;
+  }
+  jobs.forEach(j => { clearTimeout(j.pollTimer); if (j.blobUrl) URL.revokeObjectURL(j.blobUrl); });
+  jobs = []; $('queueList').replaceChildren(); store.del(LS.jobs);
+  $('queueCard').classList.add('hidden'); $('stopBtn').classList.add('hidden'); $('statusBar').classList.add('hidden');
+  updateCreateBtn();
+});
+$('logBtn').addEventListener('click', () => {
+  const b = $('log'); b.classList.toggle('hidden'); b.textContent = logLines.join('\n') || 'Aucun évènement.'; b.scrollTop = b.scrollHeight;
+});
+
+/* --- Boucle principale : 1 tic par seconde --- */
+function startTicker(){
+  if (engine.tick) return;
+  engine.tick = setInterval(tick, 1000);
+  tick();
+}
+function tick(){
+  const now = Date.now();
+  const waiting = jobs.filter(j => j.status === 'waiting');
+  if (engine.running && !engine.inFlight && waiting.length && now >= engine.nextAt){
+    submitJob(waiting[0]);
+  }
+  if (engine.running && !waiting.length && !engine.inFlight){
+    engine.running = false; $('stopBtn').classList.add('hidden'); updateCreateBtn();
+  }
+  // Mise à jour de l'affichage (texte seulement, jamais les lecteurs vidéo)
+  jobs.forEach(j => { if (j.status === 'running') updateJob(j); });
+  refreshProgress();
+  if (!engine.running && !hasActive()){
+    clearInterval(engine.tick); engine.tick = null;
+    $('statusBar').classList.add('hidden');
+    if (wakeEnabled) { releaseWakeLock(); updateWakeStatus(); }
+  }
+}
+
+async function submitJob(job){
+  engine.inFlight = true;
+  job.status = 'submitting'; job.attempts++; updateJob(job);
+  const body = Object.assign({ model: MODEL, prompt: job.prompt, image: job.image }, job.params);
+  if (!body.negative_prompt) delete body.negative_prompt;
+  try {
+    const d = await api('POST', '/v1/videos', body);
+    job.videoId = pickField(d, ['video_id']);
+    job.taskId = pickField(d, ['id','task_id']);
+    if (!job.videoId && !job.taskId) throw new ApiError('L\'API n\'a pas renvoyé d\'identifiant de vidéo.', 200);
+    job.status = 'running'; job.submittedAt = Date.now(); job.image = null; // on libère la mémoire
+    log(`${job.label} envoyée (video_id=${job.videoId || '—'}, id=${job.taskId || '—'})`);
+    // Rythme adaptatif : 3 succès d'affilée → on réaccélère doucement
+    engine.streak++;
+    if (engine.streak >= 3 && engine.interval > userInterval()){
+      engine.interval = Math.max(userInterval(), Math.round(engine.interval * 0.85)); engine.streak = 0;
+      log(`Réaccélération : délai ${engine.interval}s`);
+    }
+    engine.nextAt = Date.now() + engine.interval * 1000;
+    schedulePoll(job, POLL_EVERY);
+  } catch(e){
+    handleSubmitError(job, e);
+  } finally {
+    engine.inFlight = false; updateJob(job); saveJobs(); refreshProgress(); updateCreateBtn();
+  }
+}
+
+function handleSubmitError(job, e){
+  const s = e.status;
+  log(`${job.label} : erreur ${s || 'réseau'} — ${e.message}`);
+  engine.streak = 0;
+  if (s === 401 || s === 403){
+    job.status = 'failed'; job.error = 'Clé API refusée. Vérifiez-la ou créez-en une nouvelle sur platform.agnes-ai.com.';
+    stopAllWaiting('Clé API refusée.'); return;
+  }
+  if (s === 402){
+    job.status = 'failed'; job.error = 'Quota ou crédit insuffisant sur votre compte Agnes.';
+    stopAllWaiting('Quota Agnes épuisé.'); return;
+  }
+  if (s === 429 || s === 503 || s === 502 || s === 504 || s === 408 || s === 0 || (s >= 500 && s !== 501)){
+    // Trop de demandes ou panne passagère : on ralentit et on réessaie la même vidéo
+    if (job.attempts >= 6){ job.status = 'failed'; job.error = `Abandon après ${job.attempts} tentatives : ${e.message}`; engine.nextAt = Date.now() + engine.interval*1000; return; }
+    if (s === 429 || s === 503) engine.interval = Math.min(MAX_INTERVAL, Math.round(engine.interval * 1.5));
+    const wait = Math.max(e.retryAfter || 0, s === 0 ? 20 : engine.interval);
+    engine.nextAt = Date.now() + wait * 1000;
+    job.status = 'waiting';
+    toast(s === 429 ? `L'API demande de ralentir : nouvel essai dans ${fmtDur(wait)}.` : `Problème passager : nouvel essai dans ${fmtDur(wait)}.`, 'warn', 3500);
+    return;
+  }
+  // Erreur de paramètres (400, 413, 415, 422…) : cette vidéo échoue, on passe à la suivante
+  job.status = 'failed';
+  job.error = (s === 413 ? 'Photo trop lourde. ' : '') + e.message;
+  engine.nextAt = Date.now() + engine.interval * 1000;
+}
+function stopAllWaiting(reason){
+  engine.running = false;
+  jobs.forEach(j => { if (j.status === 'waiting'){ j.status = 'cancelled'; j.image = null; updateJob(j); } });
+  $('stopBtn').classList.add('hidden');
+  toast(reason + ' Génération arrêtée.', 'error', 5000);
+}
+
+/* --- Vérification de l'état d'une vidéo --- */
+function schedulePoll(job, delay){
+  clearTimeout(job.pollTimer);
+  job.pollTimer = setTimeout(() => { job.pollTimer = null; pollJob(job); }, delay);
+}
+async function pollJob(job){
+  if (job.status !== 'running') return;
+  if (document.visibilityState === 'hidden' && !wakeEnabled){ /* le navigateur ralentit les minuteries : on réessaiera */ }
+  if (Date.now() - job.submittedAt > POLL_TIMEOUT){
+    job.status = 'failed'; job.error = 'Délai dépassé : la vidéo n\'est pas arrivée après 25 minutes.'; updateJob(job); saveJobs(); return;
+  }
+  try {
+    const path = job.videoId
+      ? `/agnesapi?video_id=${encodeURIComponent(job.videoId)}`
+      : `/v1/videos/${encodeURIComponent(job.taskId)}`;
+    const d = await api('GET', path);
+    const status = String(pickField(d, ['status']) || '').toLowerCase();
+    const prog = Number(pickField(d, ['progress']));
+    if (Number.isFinite(prog)) job.progress = prog;
+    if (['completed','succeeded','success','done'].includes(status)){
+      const url = extractUrl(d);
+      if (!url){ log(`${job.label} terminée mais sans lien, nouvelle vérification…`); schedulePoll(job, POLL_EVERY); return; }
+      job.status = 'done'; job.url = url; job.doneAt = Date.now();
+      recordGen((job.doneAt - job.submittedAt) / 1000);
+      log(`${job.label} terminée ✓`);
+      try { navigator.vibrate && navigator.vibrate(120); } catch(e){}
+      toast(`${job.label} est prête ! 🎉`);
+      updateJob(job); saveJobs(); refreshProgress(); updateCreateBtn();
+      cacheVideo(job); // copie locale immédiate : les liens Agnes expirent
+      return;
+    }
+    if (['failed','error','cancelled','canceled'].includes(status)){
+      const m = pickField(d, ['error']);
+      job.status = 'failed';
+      job.error = 'La génération a échoué côté Agnes' + (m ? ' : ' + (typeof m === 'object' ? (m.message || JSON.stringify(m)) : m) : '.');
+      log(`${job.label} : échec côté serveur`);
+      updateJob(job); saveJobs(); refreshProgress(); return;
+    }
+    schedulePoll(job, POLL_EVERY);
+  } catch(e){
+    if (e.status === 404 && job.videoId && job.taskId && !job.legacyTried){
+      // Ancien format de requête en secours
+      job.legacyTried = true; job.videoId = null; log(`${job.label} : bascule sur l'ancien format de suivi`);
+      schedulePoll(job, 1000); return;
+    }
+    if (e.status === 401 || e.status === 403){ job.status = 'failed'; job.error = 'Clé API refusée pendant le suivi.'; updateJob(job); saveJobs(); return; }
+    log(`${job.label} : suivi momentanément impossible (${e.status || 'réseau'})`);
+    schedulePoll(job, e.status === 429 ? 20000 : 10000);
+  }
+}
+
+/* --- Copie locale de la vidéo (les liens Agnes expirent) --- */
+const videoName = job => `star-en-voiture-${job.label.toLowerCase().replace(/[^a-z0-9]+/g,'-')}-${new Date(job.doneAt || Date.now()).toISOString().slice(0,10)}-${job.id.slice(-4)}.mp4`;
+async function cacheVideo(job){
+  if (!job.url) return;
+  if (isNative){ // Android : fichier enregistré dans l'appli par le téléphone lui-même
+    if (job.nativeUri || job.nativeCaching) return;
+    job.nativeCaching = true;
+    try {
+      const r = await Plugins.CapacitorHttp.request({ url: job.url, method: 'GET', responseType: 'blob', readTimeout: 300000 });
+      if (Number(r.status) >= 400 || typeof r.data !== 'string') throw new Error('HTTP ' + r.status);
+      const w = await Plugins.Filesystem.writeFile({ path: 'videos/' + videoName(job), data: r.data, directory: 'CACHE', recursive: true });
+      job.nativeUri = w.uri;
+      log(`${job.label} : copie locale prête`);
+    } catch(e){ log(`${job.label} : copie locale impossible (${e.message || e})`); }
+    finally { job.nativeCaching = false; }
+    return;
+  }
+  if (job.blob) return;
+  try {
+    const r = await fetch(job.url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const b = await r.blob();
+    job.blob = b.type ? b : new Blob([b], { type: 'video/mp4' });
+    job.blobUrl = URL.createObjectURL(job.blob);
+    log(`${job.label} : copie locale prête (${(b.size/1048576).toFixed(1)} Mo)`);
+  } catch(e){
+    log(`${job.label} : copie locale impossible (${e.message}) — lecture directe depuis Agnes`);
+  }
+}
+// Enregistrer : Android → menu de partage (Galerie, Fichiers, WhatsApp, TikTok…)
+//               iPhone → « Enregistrer la vidéo » dans Photos via le partage
+//               ordinateur → téléchargement classique
+async function downloadJob(job, btn){
+  const name = videoName(job);
+  if (isNative){
+    btn.disabled = true; const old = btn.textContent; btn.textContent = 'Préparation…';
+    try {
+      if (!job.nativeUri) await cacheVideo(job);
+      if (!job.nativeUri) throw new Error('fichier indisponible');
+      await Plugins.Share.share({ title: 'Star en Voiture', files: [job.nativeUri], dialogTitle: 'Enregistrer ou partager la vidéo' });
+    } catch(e){
+      if (!/cancel/i.test(String(e && e.message))) toast('Impossible de préparer la vidéo. Réessayez dans un instant.', 'error', 4000);
+    } finally { btn.disabled = false; btn.textContent = old; }
+    return;
+  }
+  // Le partage doit partir directement du toucher : on n'attend rien avant (exigence de Safari)
+  if (job.blob && navigator.canShare){
+    const file = new File([job.blob], name, { type: 'video/mp4' });
+    if (navigator.canShare({ files: [file] })){
+      try { await navigator.share({ files: [file], title: 'Star en Voiture' }); return; }
+      catch(e){ if (e && e.name === 'AbortError') return; }
+    }
+  }
+  btn.disabled = true; const old = btn.textContent; btn.textContent = 'Téléchargement…';
+  try {
+    if (!job.blob) await cacheVideo(job);
+    const a = document.createElement('a');
+    if (job.blobUrl){ a.href = job.blobUrl; a.download = name; }
+    else {
+      a.href = job.url; a.target = '_blank'; a.rel = 'noopener';
+      toast(isIOS ? 'Vidéo ouverte : touchez Partager puis « Enregistrer la vidéo ».' : 'Vidéo ouverte : utilisez le menu ⋮ du lecteur pour la télécharger.', 'warn', 5000);
+    }
+    document.body.appendChild(a); a.click(); a.remove();
+  } finally { btn.disabled = false; btn.textContent = old; }
+}
+
+/* ================= AFFICHAGE DE LA FILE ================= */
+// Chaque élément est construit UNE seule fois. Ensuite seuls le texte et la classe
+// changent. Le lecteur vidéo, une fois inséré, n'est plus jamais reconstruit.
+function renderJob(job){
+  const root = el('div', 'item');
+  const head = el('div', 'item-head');
+  const ic = el('span', 'ic');
+  const name = el('span', 'name', job.label);
+  const st = el('span', 'st');
+  head.append(ic, name, st);
+  const err = el('div', 'err hidden');
+  const media = el('div', 'media hidden');
+  const tools = el('div', 'tools hidden');
+  root.append(head, err, media, tools);
+  if (job.summary) root.title = job.summary;
+  job.el = { root, st, err, media, tools };
+  $('queueList').appendChild(root);
+  updateJob(job);
+}
+function updateJob(job){
+  if (!job.el) return;
+  const { root, st, err, media, tools } = job.el;
+  root.className = 'item ' + job.status;
+  let text = '';
+  switch (job.status){
+    case 'waiting': {
+      const firstWaiting = jobs.find(j => j.status === 'waiting');
+      text = (engine.running && firstWaiting === job && engine.nextAt > Date.now())
+        ? `En attente — départ dans ${fmtDur((engine.nextAt - Date.now())/1000)}` : 'En attente';
+      break;
+    }
+    case 'submitting': text = 'Préparation…'; break;
+    case 'running': {
+      const el2 = (Date.now() - (job.submittedAt || Date.now())) / 1000;
+      if (Number.isFinite(job.progress) && job.progress > 0 && job.progress < 100) text = `Votre vidéo se prépare… ${Math.round(job.progress)} %`;
+      else { const left = avgGen() - el2; text = left > 0 ? `Votre vidéo se prépare… — ≈ ${fmtDur(left)}` : `Presque prête… (${fmtDur(el2)})`; }
+      break;
+    }
+    case 'done': text = '✓ Terminée'; break;
+    case 'failed': text = '✕ Échec'; break;
+    case 'cancelled': text = 'Annulée'; break;
+  }
+  if (st.textContent !== text) st.textContent = text;
+  // Message d'erreur
+  if (job.status === 'failed' && job.error){
+    err.textContent = job.error; err.classList.remove('hidden');
+    if (!tools.dataset.mode){
+      if (job.image){ // on peut réessayer seulement si la photo est encore en mémoire
+        const retry = el('button', 'btn btn-ghost btn-small', '↻ Réessayer');
+        retry.type = 'button';
+        retry.addEventListener('click', () => {
+          job.status = 'waiting'; job.error = null; job.attempts = 0; err.classList.add('hidden');
+          tools.replaceChildren(); tools.classList.add('hidden'); delete tools.dataset.mode;
+          engine.running = true; engine.batch = job.batch;
+          engine.total = jobs.filter(j => j.batch === job.batch && j.status !== 'cancelled').length;
+          $('stopBtn').classList.remove('hidden'); updateJob(job); updateCreateBtn(); startTicker();
+        });
+        tools.appendChild(retry); tools.classList.remove('hidden'); tools.dataset.mode = 'retry';
+      }
+    }
+  } else if (job.status !== 'failed') { err.classList.add('hidden'); }
+  // Lecteur vidéo : inséré une seule fois
+  if (job.status === 'done' && job.url && !job.videoAttached){
+    job.videoAttached = true;
+    const v = document.createElement('video');
+    v.controls = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'metadata';
+    v.src = job.url;
+    const localSrc = () => job.blobUrl || (job.nativeUri && Cap && Cap.convertFileSrc ? Cap.convertFileSrc(job.nativeUri) : null);
+    v.addEventListener('error', () => {
+      const ls = localSrc();
+      if (ls && v.src !== ls){ v.src = ls; return; }
+      err.textContent = 'Impossible de lire la vidéo (lien expiré ?). Essayez « Ouvrir ».'; err.classList.remove('hidden');
+    });
+    media.appendChild(v); media.classList.remove('hidden');
+    tools.replaceChildren(); tools.dataset.mode = 'done';
+    const dl = el('button', 'btn btn-dark btn-small', isNative || isIOS ? '⬇ Enregistrer / Partager' : '⬇ Télécharger'); dl.type = 'button';
+    dl.addEventListener('click', () => downloadJob(job, dl));
+    tools.append(dl);
+    if (!isNative){
+      const op = document.createElement('a'); op.className = 'btn btn-ghost btn-small'; op.textContent = '↗ Ouvrir';
+      op.href = job.url; op.target = '_blank'; op.rel = 'noopener';
+      tools.append(op);
+    }
+    tools.classList.remove('hidden');
+    // Bascule sur la copie locale dès qu'elle est prête, seulement si la vidéo n'est pas en lecture
+    const swap = setInterval(() => {
+      const ls = localSrc(); if (!ls) return;
+      clearInterval(swap);
+      if (v.paused && (v.currentTime === 0 || v.ended)) { v.src = ls; }
+    }, 1500);
+    setTimeout(() => clearInterval(swap), 120000);
+  }
+}
+
+function refreshProgress(){
+  const batchJobs = jobs.filter(j => j.batch === engine.batch && j.status !== 'cancelled');
+  const total = batchJobs.length, done = batchJobs.filter(j => j.status === 'done').length;
+  const finished = batchJobs.filter(j => j.status === 'done' || j.status === 'failed').length;
+  $('progressText').textContent = `Progression : ${done}/${total}`;
+  $('progressBar').style.width = total ? `${(finished/total)*100}%` : '0%';
+  // Estimation du temps restant
+  const now = Date.now(), avg = avgGen();
+  const waiting = batchJobs.filter(j => j.status === 'waiting').length;
+  let eta = 0;
+  if (waiting && engine.running){
+    const untilNext = Math.max(0, (engine.nextAt - now) / 1000);
+    eta = untilNext + (waiting - 1) * engine.interval + avg;
+  }
+  batchJobs.forEach(j => { if (j.status === 'running') eta = Math.max(eta, avg - (now - j.submittedAt)/1000); });
+  $('etaText').textContent = (waiting || hasActive()) ? `≈ ${fmtDur(Math.max(eta, 5))} restant` : (total ? 'Terminé' : '');
+  // Barre d'état en bas
+  const bar = $('statusBar'), txt = $('statusText');
+  const active = jobs.filter(j => j.status === 'running').length;
+  if (engine.running && waiting){
+    const idx = batchJobs.findIndex(j => j.status === 'waiting') + 1;
+    const s = Math.max(0, Math.ceil((engine.nextAt - now) / 1000));
+    txt.textContent = engine.inFlight ? `Envoi de la vidéo ${idx}/${total}…` : `Respiration créative… — Vidéo ${idx}/${total} dans ${s}s`;
+    bar.classList.remove('hidden');
+  } else if (active){
+    txt.textContent = `${active} vidéo${active>1?'s':''} en cours de fabrication…`;
+    bar.classList.remove('hidden');
+  } else bar.classList.add('hidden');
+  updateCreateBtnLabel(done, total);
+}
+function updateCreateBtnLabel(done, total){
+  if (engine.running) $('createBtn').textContent = `Création… (${done}/${total})`;
+}
+
+/* ================= REPRISE APRÈS RECHARGEMENT ================= */
+function restoreJobs(){
+  const saved = store.getJSON(LS.jobs, []);
+  if (!Array.isArray(saved) || !saved.length) return;
+  let resumed = 0;
+  saved.forEach(s => {
+    if (!s || typeof s !== 'object' || !s.id) return;
+    const job = Object.assign({ batch:'restored', params:{}, el:null }, s);
+    if (job.status === 'waiting' || job.status === 'submitting'){ job.status = 'cancelled'; return; } // photo plus en mémoire
+    if (job.status === 'running' && !job.videoId && !job.taskId) return;
+    jobs.push(job); renderJob(job);
+    if (job.status === 'running'){ resumed++; schedulePoll(job, 1500); }
+  });
+  if (jobs.length){
+    engine.batch = 'restored';
+    $('queueCard').classList.remove('hidden');
+    if (resumed){ toast(`Reprise du suivi de ${resumed} vidéo(s) en cours.`, 'success', 3500); startTicker(); }
+    refreshProgress();
+  }
+}
+
+/* ================= DÉMARRAGE ================= */
+loadForm();
+updateApiPanel();
+updateTimingDisplay();
+updateWakeStatus();
+renderImages();
+updateSpeechHint();
+restoreJobs();
+window.addEventListener('beforeunload', e => {
+  if (engine.running && jobs.some(j => j.status === 'waiting')){ e.preventDefault(); e.returnValue = ''; }
+});
+// Bouton retour Android : ne quitte jamais l'appli par surprise pendant une création
+if (isNative && Plugins.App){
+  Plugins.App.addListener('backButton', () => {
+    const settings = $('settings');
+    if (settings.open){ settings.open = false; return; }
+    if (window.scrollY > 300){ window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if ((engine.running || hasActive()) && !confirm('Des vidéos sont en cours de création. Quitter quand même ?')) return;
+    Plugins.App.exitApp();
+  });
+  // Retour au premier plan : relance immédiate des vérifications
+  Plugins.App.addListener('resume', () => { jobs.forEach(j => { if (j.status === 'running') schedulePoll(j, 300); }); });
+}
+// Version web / iPhone : fonctionne et s'installe comme une appli
+if (!isNative && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(e => log('Service worker : ' + e.message)); });
+}
+log('Prêt.');
+})();
+</script>
+</body>
+</html>
